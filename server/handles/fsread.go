@@ -3,6 +3,7 @@ package handles
 import (
 	"fmt"
 	stdpath "path"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/alist-org/alist/v3/internal/sign"
 	"github.com/alist-org/alist/v3/pkg/utils"
 	"github.com/alist-org/alist/v3/server/common"
+	"github.com/alist-org/alist/v3/server/encrypt"
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
 )
@@ -94,6 +96,48 @@ func FsList(c *gin.Context) {
 	if err == nil {
 		provider = storage.GetStorage().Driver
 	}
+	// ******************************
+	for key, value := range objs {
+		fileName := value.GetName()
+		if len(fileName) < 21 {
+			continue
+		}
+		fmt.Printf("key: %d, value: %s\n", key, fileName)
+		wrapName, ok := value.(*model.ObjWrapName)
+		if ok {
+			// password := "111500"
+			// encryptFlow, _ := NewAesCTR(password, 1)
+			passwdOutward := "1957a5abbad658aaae6d3a38ce66f5f2" // encryptFlow.passwdOutward
+			mixBase64 := encrypt.NewMixBase64(passwdOutward, "mix64")
+			// encoded1 := mixBase64.Encode([]byte("MIDV-403.mp4"))
+			// fmt.Println("Encoded:", encoded1)
+			// decoded1, err := mixBase64.Decode(encoded1)
+			// if err == nil {
+			// 	fmt.Println("Decoded:", string(decoded1))
+			// } else {
+			// 	fmt.Println("Decode error:", err)
+			// }
+			// wrapName.Name = "80vIVbHHBEBriqDHP.mp4"
+			extension := filepath.Ext(wrapName.Name)
+			nameWithoutExt := wrapName.Name[:len(wrapName.Name)-len(extension)]
+
+			length := len(nameWithoutExt)
+			crc6Check := nameWithoutExt[length-1]
+			subEncName := nameWithoutExt[0 : length-1]
+			crc := encrypt.NewCRCn(6, 0, 0)
+			crc6Bit := crc.Checksum([]byte(subEncName + passwdOutward))
+			// console.log(subEncName, MixBase64.getSourceChar(crc6Bit), crc6Check)
+			if encrypt.GetSourceChar(crc6Bit) != crc6Check {
+				return
+			}
+
+			decoded, _ := mixBase64.Decode(subEncName)
+			wrapName.Name = string(decoded)
+		} else {
+			fmt.Println("Not a wrapName")
+		}
+	}
+	// ******************************
 	common.SuccessResp(c, FsListResp{
 		Content:  toObjsResp(objs, reqPath, isEncrypt(meta, reqPath)),
 		Total:    int64(total),
