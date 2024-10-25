@@ -45,24 +45,24 @@ func (crc *CRCn) Checksum(byteArray []byte) byte {
 }
 
 // Generate CRC8 lookup table
-func (crc *CRCn) generateTable8(polynomial byte) []byte {
-	csTable := make([]byte, 256)
-	for i := 0; i < 256; i++ {
-		curr := byte(i)
-		for j := 0; j < 8; j++ {
-			if (curr & 0x80) != 0 {
-				curr = (curr << 1) ^ polynomial
-			} else {
-				curr <<= 1
-			}
-		}
-		csTable[i] = curr
-	}
-	return csTable
-}
+// func (crc *CRCn) generateTable8(polynomial byte) []byte {
+// 	csTable := make([]byte, 256)
+// 	for i := 0; i < 256; i++ {
+// 		curr := byte(i)
+// 		for j := 0; j < 8; j++ {
+// 			if (curr & 0x80) != 0 {
+// 				curr = (curr << 1) ^ polynomial
+// 			} else {
+// 				curr <<= 1
+// 			}
+// 		}
+// 		csTable[i] = curr
+// 	}
+// 	return csTable
+// }
 
 // Generate CRC8 Dallas Maxim table
-func (crc *CRCn) generateTable8MAXIM(polynomial byte) []byte {
+func (crc *CRCn) generateTable8MAXIM(_ byte) []byte {
 	csTable := make([]byte, 256)
 	for i := 0; i < 256; i++ {
 		curr := byte(i)

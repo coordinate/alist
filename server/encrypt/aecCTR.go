@@ -22,6 +22,8 @@ type AesCTR struct {
 	cipher        cipher.Stream
 }
 
+const MAX_UINT32 = 0xffffffff
+
 func NewAesCTR(password string, sizeSalt int) (*AesCTR, error) {
 	ac := &AesCTR{
 		password: password,
@@ -78,7 +80,7 @@ func (ac *AesCTR) SetPosition(position int) {
 	copy(ac.iv, ac.soureIv)
 
 	increment := position / 16
-	ac.incrementIV(increment)
+	ac.incrementIV(uint32(increment))
 
 	ac.createCipher()
 
@@ -87,27 +89,51 @@ func (ac *AesCTR) SetPosition(position int) {
 	ac.Encrypt(buffer) // To advance the stream
 }
 
-func (ac *AesCTR) incrementIV(increment int) {
-	const maxUint32 = 0xffffffff
-	incrementBig := increment / maxUint32
-	incrementLittle := increment % maxUint32
+func (ac *AesCTR) incrementIV(increment uint32) {
+	incrementBig := increment / MAX_UINT32
+	incrementLittle := increment % MAX_UINT32
 
-	// Split the 128 bits IV into 4 numbers, 32 bits each
-	overflow := 0
-	for i := 0; i < 4; i++ {
-		num := binary.BigEndian.Uint32(ac.iv[12-4*i : 16-4*i])
-		inc := overflow
-		if i == 0 {
-			inc += incrementLittle
+	// split the 128 bits IV in 4 numbers, 32 bits each
+	overflow := uint32(0)
+	for idx := 0; idx < 4; idx++ {
+		num := binary.BigEndian.Uint32(ac.iv[12-idx*4 : 16-idx*4])
+		incValue := overflow
+		if idx == 0 {
+			incValue += incrementLittle
 		}
-		if i == 1 {
-			inc += incrementBig
+		if idx == 1 {
+			incValue += incrementBig
 		}
-		num += uint32(inc)
-		overflow = int(num >> 32)
-		binary.BigEndian.PutUint32(ac.iv[12-4*i:16-4*i], uint32(num))
+		num += incValue
+
+		numBig := num / MAX_UINT32
+		numLittle := num % MAX_UINT32
+		overflow = numBig
+		binary.BigEndian.PutUint32(ac.iv[12-idx*4:16-idx*4], numLittle)
 	}
 }
+
+// func (ac *AesCTR) incrementIV(increment int) {
+// 	const maxUint32 = 0xffffffff
+// 	incrementBig := increment / maxUint32
+// 	incrementLittle := increment % maxUint32
+
+// 	// Split the 128 bits IV into 4 numbers, 32 bits each
+// 	overflow := 0
+// 	for i := 0; i < 4; i++ {
+// 		num := binary.BigEndian.Uint32(ac.iv[12-4*i : 16-4*i])
+// 		inc := overflow
+// 		if i == 0 {
+// 			inc += incrementLittle
+// 		}
+// 		if i == 1 {
+// 			inc += incrementBig
+// 		}
+// 		num += uint32(inc)
+// 		overflow = int(num >> 32)
+// 		binary.BigEndian.PutUint32(ac.iv[12-4*i:16-4*i], uint32(num))
+// 	}
+// }
 
 func md5Sum(data string) []byte {
 	h := md5.New()
