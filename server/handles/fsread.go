@@ -15,6 +15,8 @@ import (
 	"github.com/alist-org/alist/v3/internal/sign"
 	"github.com/alist-org/alist/v3/pkg/utils"
 	"github.com/alist-org/alist/v3/server/common"
+	"github.com/coordinate/alist/server/encrypt"
+	"github.com/fanjindong/go-cache"
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
 )
@@ -53,6 +55,11 @@ type FsListResp struct {
 	Write    bool      `json:"write"`
 	Provider string    `json:"provider"`
 }
+
+// ****************************************************
+var fsListCache = cache.NewMemCache(cache.WithShards(8))
+
+// ****************************************************
 
 func FsList(c *gin.Context) {
 	var req ListReq
@@ -94,6 +101,20 @@ func FsList(c *gin.Context) {
 	if err == nil {
 		provider = storage.GetStorage().Driver
 	}
+	// ****************************************************
+	_, ok := fsListCache.Get(reqPath)
+	if !ok {
+		for _, value := range objs {
+			wrapName, ok := value.(*model.ObjWrapName)
+			if !ok {
+				fmt.Println("Not a wrapName")
+				continue
+			}
+			wrapName.Name = encrypt.DecryptFileName(value.GetName())
+		}
+		fsListCache.Set(reqPath, 1)
+	}
+	// ****************************************************
 	common.SuccessResp(c, FsListResp{
 		Content:  toObjsResp(objs, reqPath, isEncrypt(meta, reqPath)),
 		Total:    int64(total),
@@ -311,6 +332,9 @@ func FsGet(c *gin.Context) {
 					common.ErrorResp(c, err, 500)
 					return
 				}
+				// ****************************************************
+				link.URL = encrypt.Redirect(c.Request.Host, reqPath, link.URL, obj.GetSize())
+				// ****************************************************
 				rawURL = link.URL
 			}
 		}

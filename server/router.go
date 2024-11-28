@@ -1,6 +1,12 @@
 package server
 
 import (
+	"fmt"
+	"io"
+	"net/http"
+	"strconv"
+	"strings"
+
 	"github.com/alist-org/alist/v3/cmd/flags"
 	"github.com/alist-org/alist/v3/internal/conf"
 	"github.com/alist-org/alist/v3/internal/message"
@@ -9,9 +15,103 @@ import (
 	"github.com/alist-org/alist/v3/server/handles"
 	"github.com/alist-org/alist/v3/server/middlewares"
 	"github.com/alist-org/alist/v3/server/static"
+	"github.com/coordinate/alist/server/encrypt"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
+
+// *******************************************
+func videoProxyHandler(w http.ResponseWriter, r *http.Request, videoURL string, fileSize int) {
+	// Create a new HTTP request to the video URL
+	req, err := http.NewRequest(r.Method, videoURL, nil)
+	if err != nil {
+		http.Error(w, "Error creating request", http.StatusInternalServerError)
+		return
+	}
+
+	// Copy headers from the original request
+	for key, values := range r.Header {
+		for _, value := range values {
+			req.Header.Add(key, value)
+		}
+	}
+
+	// Send the request to the video URL
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		http.Error(w, "Error fetching video", http.StatusInternalServerError)
+		return
+	}
+	defer resp.Body.Close()
+
+	// Copy the headers from the video response to the response writer
+	for key, values := range resp.Header {
+		for _, value := range values {
+			w.Header().Add(key, value)
+		}
+	}
+	w.WriteHeader(resp.StatusCode)
+
+	// Create a pipe to stream data
+	pipeReader, pipeWriter := io.Pipe()
+	defer pipeReader.Close()
+	defer pipeWriter.Close()
+
+	rangeHeader := resp.Request.Header.Get("Range")
+	var start int = 0
+	// 解析 Range 头
+	parts := strings.Split(rangeHeader, "=")
+	if len(parts) > 1 && len(parts[1]) > 0 {
+		rangeValues := strings.Split(parts[1], "-")
+		if len(rangeValues) > 0 {
+			// 将开始字节转换为整数
+			if startVal, err := strconv.ParseInt(rangeValues[0], 10, 64); err == nil {
+				start = int(startVal)
+			}
+		}
+	}
+	encryptFlow, _ := encrypt.NewAesCTR("111500", fileSize)
+	if start > 0 {
+		fmt.Print(start)
+		encryptFlow.SetPosition(start)
+	}
+
+	// Start a goroutine to read from the video response and decrypt the data
+	go func() {
+		defer pipeWriter.Close()
+		bufferSize := 1024 * 64 // 64KB buffer
+		buffer := make([]byte, bufferSize)
+		for {
+			n, err := resp.Body.Read(buffer)
+			// if n >= 65536 || n <= 0 {
+			// 	fmt.Println("????????????????????")
+			// 	return
+			// }
+			if err != nil && err != io.EOF {
+				fmt.Println("Error reading video response:", err)
+				return
+			}
+			decryptedData := encryptFlow.Decrypt(buffer[:n])
+			if _, err := pipeWriter.Write(decryptedData); err != nil {
+				fmt.Println("Error writing to pipe:", err)
+				return
+			}
+			if err != nil && err == io.EOF {
+				return
+			}
+		}
+	}()
+
+	// Stream the decrypted data from the pipe to the response writer
+	if _, err := io.Copy(w, pipeReader); err != nil {
+		fmt.Println("Error writing to response:", err)
+	} else {
+		fmt.Println("Writing to response...")
+	}
+}
+
+// *******************************************
 
 func Init(e *gin.Engine) {
 	if !utils.SliceContains([]string{"", "/"}, conf.URL.Path) {
@@ -24,6 +124,21 @@ func Init(e *gin.Engine) {
 	if conf.Conf.Scheme.HttpPort != -1 && conf.Conf.Scheme.HttpsPort != -1 && conf.Conf.Scheme.ForceHttps {
 		e.Use(middlewares.ForceHttps)
 	}
+	// *******************************************
+	g.Any("/redirect/*key", func(c *gin.Context) {
+		key := c.Param("key")
+		value, _ := encrypt.RawURLCache.Get(key[1:])
+		parts := strings.SplitN(value.(string), "http", 2)
+		size, _ := strconv.Atoi(parts[0])
+		rawUrl := "http" + parts[1]
+		// fmt.Print(size)
+		// fmt.Print(rawUrl)
+		// proxy, _ := NewProxy(rawUrl, size)
+		// proxy.ServeHTTP(c.Writer, c.Request)
+		// httpProxy(c.Writer, c.Request, rawUrl)
+		videoProxyHandler(c.Writer, c.Request, rawUrl, size)
+	})
+	// *******************************************
 	g.Any("/ping", func(c *gin.Context) {
 		c.String(200, "pong")
 	})

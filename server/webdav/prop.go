@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/alist-org/alist/v3/internal/model"
+	"github.com/coordinate/alist/server/encrypt"
 )
 
 // Proppatch describes a property update instruction as defined in RFC 4918.
@@ -375,7 +376,10 @@ func findDisplayName(ctx context.Context, ls LockSystem, name string, fi model.O
 		// Hide the real name of a possibly prefixed root directory.
 		return "", nil
 	}
-	return escapeXML(fi.GetName()), nil
+	// *******************************************
+	fileName := encrypt.DecryptFileName(fi.GetName())
+	return escapeXML(fileName), nil
+	// *******************************************
 }
 
 func findContentLength(ctx context.Context, ls LockSystem, name string, fi model.Obj) (string, error) {

@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/alist-org/alist/v3/internal/stream"
+	"github.com/coordinate/alist/server/encrypt"
 
 	"github.com/alist-org/alist/v3/internal/errs"
 	"github.com/alist-org/alist/v3/internal/fs"
@@ -267,6 +268,13 @@ func (h *Handler) handleGetHeadPost(w http.ResponseWriter, r *http.Request) (sta
 		if err != nil {
 			return http.StatusInternalServerError, err
 		}
+		// ****************************************************
+		obj, err := fs.Get(ctx, reqPath, &fs.GetArgs{})
+		if err != nil {
+			return http.StatusInternalServerError, err
+		}
+		link.URL = encrypt.Redirect(r.Host, reqPath, link.URL, obj.GetSize())
+		// ****************************************************
 		http.Redirect(w, r, link.URL, http.StatusFound)
 	}
 	return 0, nil
