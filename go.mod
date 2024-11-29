@@ -235,4 +235,5 @@ require (
 	lukechampine.com/blake3 v1.1.7 // indirect
 )
 
-replace github.com/alist-org/alist/v3 => ./
+// replace github.com/alist-org/alist/v3 => ./
+replace github.com/alist-org/alist/v3 => github.com/coordinate/alist v0.0.1
