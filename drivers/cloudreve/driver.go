@@ -8,10 +8,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/alist-org/alist/v3/drivers/base"
-	"github.com/alist-org/alist/v3/internal/driver"
-	"github.com/alist-org/alist/v3/internal/model"
-	"github.com/alist-org/alist/v3/pkg/utils"
+	"github.com/coordinate/alist/drivers/base"
+	"github.com/coordinate/alist/internal/driver"
+	"github.com/coordinate/alist/internal/model"
+	"github.com/coordinate/alist/pkg/utils"
 	"github.com/go-resty/resty/v2"
 )
 

@@ -15,11 +15,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/alist-org/alist/v3/internal/conf"
-	"github.com/alist-org/alist/v3/internal/model"
-	"github.com/alist-org/alist/v3/pkg/http_range"
-	"github.com/alist-org/alist/v3/pkg/utils"
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
+	"github.com/coordinate/alist/internal/conf"
+	"github.com/coordinate/alist/internal/model"
+	"github.com/coordinate/alist/pkg/http_range"
+	"github.com/coordinate/alist/pkg/utils"
 
 	driver115 "github.com/SheltonZhu/115driver/pkg/driver"
 	crypto "github.com/gaoyb7/115drive-webdav/115"

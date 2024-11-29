@@ -2,13 +2,14 @@ package pikpak_share
 
 import (
 	"context"
-	"github.com/alist-org/alist/v3/internal/op"
 	"net/http"
 	"time"
 
-	"github.com/alist-org/alist/v3/internal/driver"
-	"github.com/alist-org/alist/v3/internal/model"
-	"github.com/alist-org/alist/v3/pkg/utils"
+	"github.com/coordinate/alist/internal/op"
+
+	"github.com/coordinate/alist/internal/driver"
+	"github.com/coordinate/alist/internal/model"
+	"github.com/coordinate/alist/pkg/utils"
 	"github.com/go-resty/resty/v2"
 )
 

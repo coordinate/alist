@@ -6,12 +6,12 @@ import (
 	"time"
 
 	"github.com/Xhofe/go-cache"
-	"github.com/alist-org/alist/v3/internal/driver"
-	"github.com/alist-org/alist/v3/internal/errs"
-	"github.com/alist-org/alist/v3/internal/model"
-	"github.com/alist-org/alist/v3/pkg/generic_sync"
-	"github.com/alist-org/alist/v3/pkg/singleflight"
-	"github.com/alist-org/alist/v3/pkg/utils"
+	"github.com/coordinate/alist/internal/driver"
+	"github.com/coordinate/alist/internal/errs"
+	"github.com/coordinate/alist/internal/model"
+	"github.com/coordinate/alist/pkg/generic_sync"
+	"github.com/coordinate/alist/pkg/singleflight"
+	"github.com/coordinate/alist/pkg/utils"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )

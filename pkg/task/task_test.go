@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alist-org/alist/v3/pkg/utils"
+	"github.com/coordinate/alist/pkg/utils"
 	"github.com/pkg/errors"
 )
 

@@ -17,7 +17,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alist-org/alist/v3/internal/model"
+	"github.com/coordinate/alist/internal/model"
 	"github.com/coordinate/alist/server/encrypt"
 )
 

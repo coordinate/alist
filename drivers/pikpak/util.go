@@ -7,14 +7,6 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
-	"github.com/alist-org/alist/v3/internal/driver"
-	"github.com/alist-org/alist/v3/internal/model"
-	"github.com/alist-org/alist/v3/internal/op"
-	"github.com/alist-org/alist/v3/pkg/utils"
-	"github.com/aliyun/aliyun-oss-go-sdk/oss"
-	jsoniter "github.com/json-iterator/go"
-	"github.com/pkg/errors"
-	"golang.org/x/oauth2"
 	"io"
 	"net/http"
 	"path/filepath"
@@ -23,7 +15,16 @@ import (
 	"sync"
 	"time"
 
-	"github.com/alist-org/alist/v3/drivers/base"
+	"github.com/aliyun/aliyun-oss-go-sdk/oss"
+	"github.com/coordinate/alist/internal/driver"
+	"github.com/coordinate/alist/internal/model"
+	"github.com/coordinate/alist/internal/op"
+	"github.com/coordinate/alist/pkg/utils"
+	jsoniter "github.com/json-iterator/go"
+	"github.com/pkg/errors"
+	"golang.org/x/oauth2"
+
+	"github.com/coordinate/alist/drivers/base"
 	"github.com/go-resty/resty/v2"
 )
 

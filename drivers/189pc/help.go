@@ -18,7 +18,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alist-org/alist/v3/pkg/utils/random"
+	"github.com/coordinate/alist/pkg/utils/random"
 )
 
 func clientSuffix() map[string]string {

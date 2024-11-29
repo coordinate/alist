@@ -10,9 +10,9 @@ import (
 	"path"
 	"time"
 
-	"github.com/alist-org/alist/v3/internal/driver"
-	"github.com/alist-org/alist/v3/internal/errs"
-	"github.com/alist-org/alist/v3/internal/model"
+	"github.com/coordinate/alist/internal/driver"
+	"github.com/coordinate/alist/internal/errs"
+	"github.com/coordinate/alist/internal/model"
 	"github.com/go-resty/resty/v2"
 )
 

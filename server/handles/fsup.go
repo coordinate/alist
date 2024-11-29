@@ -1,17 +1,18 @@
 package handles
 
 import (
-	"github.com/alist-org/alist/v3/internal/task"
 	"io"
 	"net/url"
 	stdpath "path"
 	"strconv"
 	"time"
 
-	"github.com/alist-org/alist/v3/internal/fs"
-	"github.com/alist-org/alist/v3/internal/model"
-	"github.com/alist-org/alist/v3/internal/stream"
-	"github.com/alist-org/alist/v3/server/common"
+	"github.com/coordinate/alist/internal/task"
+
+	"github.com/coordinate/alist/internal/fs"
+	"github.com/coordinate/alist/internal/model"
+	"github.com/coordinate/alist/internal/stream"
+	"github.com/coordinate/alist/server/common"
 	"github.com/gin-gonic/gin"
 )
 

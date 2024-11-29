@@ -3,11 +3,12 @@ package fs
 import (
 	"context"
 	"fmt"
-	"github.com/alist-org/alist/v3/internal/driver"
-	"github.com/alist-org/alist/v3/internal/errs"
-	"github.com/alist-org/alist/v3/internal/model"
-	"github.com/alist-org/alist/v3/internal/op"
-	"github.com/alist-org/alist/v3/internal/task"
+
+	"github.com/coordinate/alist/internal/driver"
+	"github.com/coordinate/alist/internal/errs"
+	"github.com/coordinate/alist/internal/model"
+	"github.com/coordinate/alist/internal/op"
+	"github.com/coordinate/alist/internal/task"
 	"github.com/pkg/errors"
 	"github.com/xhofe/tache"
 )

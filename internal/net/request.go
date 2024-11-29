@@ -12,10 +12,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/alist-org/alist/v3/pkg/utils"
+	"github.com/coordinate/alist/pkg/utils"
 
-	"github.com/alist-org/alist/v3/pkg/http_range"
 	"github.com/aws/aws-sdk-go/aws/awsutil"
+	"github.com/coordinate/alist/pkg/http_range"
 	log "github.com/sirupsen/logrus"
 )
 

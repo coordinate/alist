@@ -4,21 +4,22 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/alist-org/alist/v3/server/common"
 	"io"
 	"net/url"
 	stdpath "path"
 	"strings"
 	"time"
 
-	"github.com/alist-org/alist/v3/internal/stream"
-	"github.com/alist-org/alist/v3/pkg/cron"
+	"github.com/coordinate/alist/server/common"
 
-	"github.com/alist-org/alist/v3/internal/driver"
-	"github.com/alist-org/alist/v3/internal/model"
+	"github.com/coordinate/alist/internal/stream"
+	"github.com/coordinate/alist/pkg/cron"
+
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/coordinate/alist/internal/driver"
+	"github.com/coordinate/alist/internal/model"
 	log "github.com/sirupsen/logrus"
 )
 

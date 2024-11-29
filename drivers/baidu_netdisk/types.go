@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/alist-org/alist/v3/internal/model"
-	"github.com/alist-org/alist/v3/pkg/utils"
+	"github.com/coordinate/alist/internal/model"
+	"github.com/coordinate/alist/pkg/utils"
 )
 
 type TokenErrResp struct {

@@ -4,9 +4,9 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/alist-org/alist/v3/internal/conf"
+	"github.com/coordinate/alist/internal/conf"
 
-	"github.com/alist-org/alist/v3/internal/driver"
+	"github.com/coordinate/alist/internal/driver"
 	"github.com/pkg/errors"
 )
 

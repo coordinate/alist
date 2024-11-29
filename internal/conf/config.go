@@ -3,8 +3,8 @@ package conf
 import (
 	"path/filepath"
 
-	"github.com/alist-org/alist/v3/cmd/flags"
-	"github.com/alist-org/alist/v3/pkg/utils/random"
+	"github.com/coordinate/alist/cmd/flags"
+	"github.com/coordinate/alist/pkg/utils/random"
 )
 
 type Database struct {

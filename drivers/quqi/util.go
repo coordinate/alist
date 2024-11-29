@@ -13,12 +13,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alist-org/alist/v3/drivers/base"
-	"github.com/alist-org/alist/v3/internal/errs"
-	"github.com/alist-org/alist/v3/internal/model"
-	"github.com/alist-org/alist/v3/internal/stream"
-	"github.com/alist-org/alist/v3/pkg/http_range"
-	"github.com/alist-org/alist/v3/pkg/utils"
+	"github.com/coordinate/alist/drivers/base"
+	"github.com/coordinate/alist/internal/errs"
+	"github.com/coordinate/alist/internal/model"
+	"github.com/coordinate/alist/internal/stream"
+	"github.com/coordinate/alist/pkg/http_range"
+	"github.com/coordinate/alist/pkg/utils"
 	"github.com/go-resty/resty/v2"
 	"github.com/minio/sio"
 )

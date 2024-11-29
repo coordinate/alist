@@ -9,15 +9,15 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/alist-org/alist/v3/drivers/base"
-	"github.com/alist-org/alist/v3/internal/driver"
-	"github.com/alist-org/alist/v3/internal/errs"
-	"github.com/alist-org/alist/v3/internal/model"
-	"github.com/alist-org/alist/v3/internal/op"
-	"github.com/alist-org/alist/v3/pkg/cron"
-	"github.com/alist-org/alist/v3/pkg/errgroup"
-	"github.com/alist-org/alist/v3/pkg/utils"
 	"github.com/avast/retry-go"
+	"github.com/coordinate/alist/drivers/base"
+	"github.com/coordinate/alist/internal/driver"
+	"github.com/coordinate/alist/internal/errs"
+	"github.com/coordinate/alist/internal/model"
+	"github.com/coordinate/alist/internal/op"
+	"github.com/coordinate/alist/pkg/cron"
+	"github.com/coordinate/alist/pkg/errgroup"
+	"github.com/coordinate/alist/pkg/utils"
 	weiyunsdkgo "github.com/foxxorcat/weiyun-sdk-go"
 )
 

@@ -4,9 +4,9 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 
-	"github.com/alist-org/alist/v3/internal/driver"
-	"github.com/alist-org/alist/v3/internal/op"
-	"github.com/alist-org/alist/v3/pkg/utils"
+	"github.com/coordinate/alist/internal/driver"
+	"github.com/coordinate/alist/internal/op"
+	"github.com/coordinate/alist/pkg/utils"
 )
 
 // ExpertAddition 高级设置

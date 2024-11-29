@@ -75,6 +75,7 @@ require (
 )
 
 require (
+	github.com/BurntSushi/toml v1.4.0 // indirect
 	github.com/blevesearch/go-faiss v1.0.20 // indirect
 	github.com/blevesearch/zapx/v16 v16.1.5 // indirect
 	github.com/bytedance/sonic/loader v0.1.1 // indirect
@@ -87,6 +88,7 @@ require (
 	github.com/hekmon/cunits/v2 v2.1.0 // indirect
 	github.com/ipfs/boxo v0.12.0 // indirect
 	github.com/jackc/puddle/v2 v2.2.1 // indirect
+	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 )
 
 require (
@@ -235,5 +237,6 @@ require (
 	lukechampine.com/blake3 v1.1.7 // indirect
 )
 
+// replace github.com/alist-org/alist/v3 => github.com/coordinate/alist v0.0.1
+
 // replace github.com/alist-org/alist/v3 => ./
-replace github.com/alist-org/alist/v3 => github.com/coordinate/alist v0.0.1

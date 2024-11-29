@@ -3,9 +3,9 @@ package fs
 import (
 	"context"
 
-	"github.com/alist-org/alist/v3/internal/errs"
-	"github.com/alist-org/alist/v3/internal/model"
-	"github.com/alist-org/alist/v3/internal/op"
+	"github.com/coordinate/alist/internal/errs"
+	"github.com/coordinate/alist/internal/model"
+	"github.com/coordinate/alist/internal/op"
 	"github.com/pkg/errors"
 )
 

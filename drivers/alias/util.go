@@ -6,12 +6,12 @@ import (
 	stdpath "path"
 	"strings"
 
-	"github.com/alist-org/alist/v3/internal/errs"
-	"github.com/alist-org/alist/v3/internal/fs"
-	"github.com/alist-org/alist/v3/internal/model"
-	"github.com/alist-org/alist/v3/internal/sign"
-	"github.com/alist-org/alist/v3/pkg/utils"
-	"github.com/alist-org/alist/v3/server/common"
+	"github.com/coordinate/alist/internal/errs"
+	"github.com/coordinate/alist/internal/fs"
+	"github.com/coordinate/alist/internal/model"
+	"github.com/coordinate/alist/internal/sign"
+	"github.com/coordinate/alist/pkg/utils"
+	"github.com/coordinate/alist/server/common"
 )
 
 func (d *Alias) listRoot() []model.Obj {

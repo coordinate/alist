@@ -1,8 +1,8 @@
 package dropbox
 
 import (
-	"github.com/alist-org/alist/v3/internal/driver"
-	"github.com/alist-org/alist/v3/internal/op"
+	"github.com/coordinate/alist/internal/driver"
+	"github.com/coordinate/alist/internal/op"
 )
 
 const (

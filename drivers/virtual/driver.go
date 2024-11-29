@@ -5,9 +5,9 @@ import (
 	"io"
 	"time"
 
-	"github.com/alist-org/alist/v3/internal/driver"
-	"github.com/alist-org/alist/v3/internal/model"
-	"github.com/alist-org/alist/v3/pkg/utils/random"
+	"github.com/coordinate/alist/internal/driver"
+	"github.com/coordinate/alist/internal/model"
+	"github.com/coordinate/alist/pkg/utils/random"
 )
 
 type Virtual struct {

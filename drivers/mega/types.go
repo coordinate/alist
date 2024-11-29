@@ -1,10 +1,11 @@
 package mega
 
 import (
-	"github.com/alist-org/alist/v3/pkg/utils"
 	"time"
 
-	"github.com/alist-org/alist/v3/internal/model"
+	"github.com/coordinate/alist/pkg/utils"
+
+	"github.com/coordinate/alist/internal/model"
 	"github.com/t3rm1n4l/go-mega"
 )
 

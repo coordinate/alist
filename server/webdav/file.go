@@ -10,10 +10,10 @@ import (
 	"path"
 	"path/filepath"
 
-	"github.com/alist-org/alist/v3/internal/conf"
-	"github.com/alist-org/alist/v3/internal/fs"
-	"github.com/alist-org/alist/v3/internal/model"
-	"github.com/alist-org/alist/v3/internal/op"
+	"github.com/coordinate/alist/internal/conf"
+	"github.com/coordinate/alist/internal/fs"
+	"github.com/coordinate/alist/internal/model"
+	"github.com/coordinate/alist/internal/op"
 )
 
 // slashClean is equivalent to but slightly more efficient than

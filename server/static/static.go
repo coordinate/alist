@@ -9,10 +9,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/alist-org/alist/v3/internal/conf"
-	"github.com/alist-org/alist/v3/internal/setting"
-	"github.com/alist-org/alist/v3/pkg/utils"
-	"github.com/alist-org/alist/v3/public"
+	"github.com/coordinate/alist/internal/conf"
+	"github.com/coordinate/alist/internal/setting"
+	"github.com/coordinate/alist/pkg/utils"
+	"github.com/coordinate/alist/public"
 	"github.com/gin-gonic/gin"
 )
 

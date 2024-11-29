@@ -6,10 +6,10 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/alist-org/alist/v3/internal/errs"
-	"github.com/alist-org/alist/v3/internal/model"
-	"github.com/alist-org/alist/v3/internal/net"
-	"github.com/alist-org/alist/v3/pkg/http_range"
+	"github.com/coordinate/alist/internal/errs"
+	"github.com/coordinate/alist/internal/model"
+	"github.com/coordinate/alist/internal/net"
+	"github.com/coordinate/alist/pkg/http_range"
 	log "github.com/sirupsen/logrus"
 )
 

@@ -5,8 +5,8 @@ import (
 	_ "net/http/pprof"
 	"runtime"
 
-	"github.com/alist-org/alist/v3/server/common"
-	"github.com/alist-org/alist/v3/server/middlewares"
+	"github.com/coordinate/alist/server/common"
+	"github.com/coordinate/alist/server/middlewares"
 	"github.com/gin-gonic/gin"
 )
 

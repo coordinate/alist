@@ -2,13 +2,14 @@ package tool
 
 import (
 	"context"
-	"github.com/alist-org/alist/v3/internal/model"
-	"github.com/alist-org/alist/v3/internal/task"
 	"path/filepath"
 
-	"github.com/alist-org/alist/v3/internal/conf"
-	"github.com/alist-org/alist/v3/internal/errs"
-	"github.com/alist-org/alist/v3/internal/op"
+	"github.com/coordinate/alist/internal/model"
+	"github.com/coordinate/alist/internal/task"
+
+	"github.com/coordinate/alist/internal/conf"
+	"github.com/coordinate/alist/internal/errs"
+	"github.com/coordinate/alist/internal/op"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 )

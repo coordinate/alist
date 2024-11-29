@@ -6,11 +6,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/alist-org/alist/v3/cmd/flags"
-	"github.com/alist-org/alist/v3/drivers/base"
-	"github.com/alist-org/alist/v3/internal/conf"
-	"github.com/alist-org/alist/v3/pkg/utils"
 	"github.com/caarlos0/env/v9"
+	"github.com/coordinate/alist/cmd/flags"
+	"github.com/coordinate/alist/drivers/base"
+	"github.com/coordinate/alist/internal/conf"
+	"github.com/coordinate/alist/pkg/utils"
 	log "github.com/sirupsen/logrus"
 )
 

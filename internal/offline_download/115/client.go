@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/alist-org/alist/v3/drivers/115"
-	"github.com/alist-org/alist/v3/internal/errs"
-	"github.com/alist-org/alist/v3/internal/model"
-	"github.com/alist-org/alist/v3/internal/offline_download/tool"
-	"github.com/alist-org/alist/v3/internal/op"
+	_115 "github.com/coordinate/alist/drivers/115"
+	"github.com/coordinate/alist/internal/errs"
+	"github.com/coordinate/alist/internal/model"
+	"github.com/coordinate/alist/internal/offline_download/tool"
+	"github.com/coordinate/alist/internal/op"
 )
 
 type Cloud115 struct {

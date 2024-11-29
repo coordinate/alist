@@ -4,9 +4,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/alist-org/alist/v3/internal/conf"
-	"github.com/alist-org/alist/v3/internal/setting"
-	"github.com/alist-org/alist/v3/pkg/sign"
+	"github.com/coordinate/alist/internal/conf"
+	"github.com/coordinate/alist/internal/setting"
+	"github.com/coordinate/alist/pkg/sign"
 )
 
 var once sync.Once
