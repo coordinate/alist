@@ -131,8 +131,7 @@ func Init(e *gin.Engine) {
 		parts := strings.SplitN(value.(string), "http", 2)
 		size, _ := strconv.Atoi(parts[0])
 		rawUrl := "http" + parts[1]
-		// fmt.Print(size)
-		// fmt.Print(rawUrl)
+		fmt.Print(size, rawUrl)
 		// proxy, _ := NewProxy(rawUrl, size)
 		// proxy.ServeHTTP(c.Writer, c.Request)
 		// httpProxy(c.Writer, c.Request, rawUrl)
