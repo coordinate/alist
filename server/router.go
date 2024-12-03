@@ -32,6 +32,10 @@ func videoProxyHandler(w http.ResponseWriter, r *http.Request, videoURL string, 
 	// Copy headers from the original request
 	for key, values := range r.Header {
 		for _, value := range values {
+			// webdav will add Authorization auto
+			if key == "Authorization" {
+				continue
+			}
 			req.Header.Add(key, value)
 		}
 	}
@@ -82,6 +86,7 @@ func videoProxyHandler(w http.ResponseWriter, r *http.Request, videoURL string, 
 		defer pipeWriter.Close()
 		bufferSize := 1024 * 64 // 64KB buffer
 		buffer := make([]byte, bufferSize)
+		// flag := 1
 		for {
 			n, err := resp.Body.Read(buffer)
 			// if n >= 65536 || n <= 0 {
@@ -93,6 +98,12 @@ func videoProxyHandler(w http.ResponseWriter, r *http.Request, videoURL string, 
 				return
 			}
 			decryptedData := encryptFlow.Decrypt(buffer[:n])
+			// if flag != 0 {
+			// 	flag -= 1
+			// 	fmt.Println(string(buffer[:]))
+			// 	fmt.Println(buffer[:n])
+			// 	fmt.Println(decryptedData)
+			// }
 			if _, err := pipeWriter.Write(decryptedData); err != nil {
 				fmt.Println("Error writing to pipe:", err)
 				return
@@ -131,7 +142,8 @@ func Init(e *gin.Engine) {
 		parts := strings.SplitN(value.(string), "http", 2)
 		size, _ := strconv.Atoi(parts[0])
 		rawUrl := "http" + parts[1]
-		fmt.Print(size, rawUrl)
+		fmt.Println(size)
+		fmt.Println(rawUrl)
 		// proxy, _ := NewProxy(rawUrl, size)
 		// proxy.ServeHTTP(c.Writer, c.Request)
 		// httpProxy(c.Writer, c.Request, rawUrl)

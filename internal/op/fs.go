@@ -2,6 +2,8 @@ package op
 
 import (
 	"context"
+	"fmt"
+	"github.com/coordinate/alist/server/encrypt"
 	stdpath "path"
 	"time"
 
@@ -156,6 +158,16 @@ func List(ctx context.Context, storage driver.Driver, path string, args model.Li
 		}
 		return files, nil
 	})
+	// ****************************************************
+	for _, value := range objs {
+		wrapName, ok := value.(*model.ObjWrapName)
+		if !ok {
+			fmt.Println("Not a wrapName")
+			continue
+		}
+		wrapName.Name = encrypt.DecryptFileName(value.GetName())
+	}
+	// ****************************************************
 	return objs, err
 }
 
