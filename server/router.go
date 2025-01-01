@@ -33,12 +33,20 @@ func videoProxyHandler(w http.ResponseWriter, r *http.Request, videoURL string, 
 	for key, values := range r.Header {
 		for _, value := range values {
 			// webdav will add Authorization auto
+			if key == "Host" {
+				continue
+			}
 			if key == "Authorization" {
+				continue
+			}
+			if key == "Referer" {
 				continue
 			}
 			req.Header.Add(key, value)
 		}
 	}
+	// req.Host = ""
+	// req.Header.Add("fileSize", fileSize)
 
 	// Send the request to the video URL
 	client := &http.Client{}
@@ -47,6 +55,8 @@ func videoProxyHandler(w http.ResponseWriter, r *http.Request, videoURL string, 
 		http.Error(w, "Error fetching video", http.StatusInternalServerError)
 		return
 	}
+	// fmt.Print(resp.StatusCode)
+	// fmt.Print(resp.Header)
 	defer resp.Body.Close()
 
 	// Copy the headers from the video response to the response writer
@@ -63,6 +73,7 @@ func videoProxyHandler(w http.ResponseWriter, r *http.Request, videoURL string, 
 	defer pipeWriter.Close()
 
 	rangeHeader := resp.Request.Header.Get("Range")
+	// fmt.Println(rangeHeader)
 	var start int = 0
 	// 解析 Range 头
 	parts := strings.Split(rangeHeader, "=")
@@ -77,18 +88,20 @@ func videoProxyHandler(w http.ResponseWriter, r *http.Request, videoURL string, 
 	}
 	encryptFlow, _ := encrypt.NewAesCTR("111500", fileSize)
 	if start > 0 {
-		fmt.Print(start)
+		// fmt.Println(start)
 		encryptFlow.SetPosition(start)
 	}
 
 	// Start a goroutine to read from the video response and decrypt the data
 	go func() {
-		defer pipeWriter.Close()
-		bufferSize := 1024 * 64 // 64KB buffer
+		bufferSize := 1024 * 128 // 128KB buffer
 		buffer := make([]byte, bufferSize)
 		// flag := 1
 		for {
 			n, err := resp.Body.Read(buffer)
+			// fmt.Println(buffer[:n])
+			// fmt.Print('\n')
+			// fmt.Print(string(buffer[:n]))
 			// if n >= 65536 || n <= 0 {
 			// 	fmt.Println("????????????????????")
 			// 	return
@@ -98,12 +111,33 @@ func videoProxyHandler(w http.ResponseWriter, r *http.Request, videoURL string, 
 				return
 			}
 			decryptedData := encryptFlow.Decrypt(buffer[:n])
+			// fmt.Print(string(decryptedData))
+			// fmt.Println(decryptedData)
+			// fmt.Print('\n')
 			// if flag != 0 {
 			// 	flag -= 1
 			// 	fmt.Println(string(buffer[:]))
 			// 	fmt.Println(buffer[:n])
 			// 	fmt.Println(decryptedData)
 			// }
+			// flag := os.O_CREATE | os.O_WRONLY
+			// if _, err := os.Stat("output.txt"); os.IsNotExist(err) {
+			// 	fmt.Println("File does not exist!")
+			// } else if err == nil {
+			// 	flag = flag | os.O_APPEND
+			// } else {
+			// 	fmt.Println("Error checking file:", err)
+			// }
+			// file, err := os.OpenFile("output.txt", flag, 0644)
+			// if err != nil {
+			// 	panic(err)
+			// }
+			// defer file.Close()
+			// _, err = file.Write(decryptedData)
+			// if err != nil {
+			// 	panic(err)
+			// }
+
 			if _, err := pipeWriter.Write(decryptedData); err != nil {
 				fmt.Println("Error writing to pipe:", err)
 				return
