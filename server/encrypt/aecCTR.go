@@ -6,6 +6,7 @@ import (
 	"crypto/md5"
 	"encoding/binary"
 	"fmt"
+	"math"
 	// "github.com/CrackedPoly/AES-implementation-in-Golang/src/aes"
 )
 
@@ -101,26 +102,48 @@ func (ac *AesCTR) SetPosition(position int) {
 func (ac *AesCTR) incrementIV(increment uint32) {
 	incrementBig := increment / MAX_UINT32
 	incrementLittle := increment % MAX_UINT32
-
-	// split the 128 bits IV in 4 numbers, 32 bits each
 	overflow := uint32(0)
 	for idx := 0; idx < 4; idx++ {
-		num := binary.BigEndian.Uint32(ac.iv[12-idx*4 : 16-idx*4])
-		incValue := overflow
+		offset := 12 - idx*4
+		num := uint64(binary.BigEndian.Uint32(ac.iv[offset : offset+4]))
+		inc := overflow
 		if idx == 0 {
-			incValue += incrementLittle
+			inc += incrementLittle
 		}
 		if idx == 1 {
-			incValue += incrementBig
+			inc += incrementBig
 		}
-		num += incValue
-
-		numBig := num / MAX_UINT32
-		numLittle := num % MAX_UINT32
+		num += uint64(inc)
+		numBig := uint32(math.Floor(float64(num) / MAX_UINT32))
+		numLittle := uint32(num%MAX_UINT32) - numBig
 		overflow = numBig
-		binary.BigEndian.PutUint32(ac.iv[12-idx*4:16-idx*4], numLittle)
+		binary.BigEndian.PutUint32(ac.iv[offset:offset+4], numLittle)
 	}
 }
+
+// func (ac *AesCTR) incrementIV(increment uint32) {
+// 	incrementBig := increment / MAX_UINT32
+// 	incrementLittle := increment % MAX_UINT32
+
+// 	// split the 128 bits IV in 4 numbers, 32 bits each
+// 	overflow := uint32(0)
+// 	for idx := 0; idx < 4; idx++ {
+// 		num := binary.BigEndian.Uint32(ac.iv[12-idx*4 : 16-idx*4])
+// 		incValue := overflow
+// 		if idx == 0 {
+// 			incValue += incrementLittle
+// 		}
+// 		if idx == 1 {
+// 			incValue += incrementBig
+// 		}
+// 		num += incValue
+
+// 		numBig := num / MAX_UINT32
+// 		numLittle := num % MAX_UINT32
+// 		overflow = numBig
+// 		binary.BigEndian.PutUint32(ac.iv[12-idx*4:16-idx*4], numLittle)
+// 	}
+// }
 
 // func (ac *AesCTR) incrementIV(increment int) {
 // 	const maxUint32 = 0xffffffff
