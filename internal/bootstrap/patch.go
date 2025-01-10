@@ -2,9 +2,10 @@ package bootstrap
 
 import (
 	"fmt"
-	"github.com/alist-org/alist/v3/internal/bootstrap/patch"
-	"github.com/alist-org/alist/v3/internal/conf"
-	"github.com/alist-org/alist/v3/pkg/utils"
+
+	"github.com/coordinate/alist/internal/bootstrap/patch"
+	"github.com/coordinate/alist/internal/conf"
+	"github.com/coordinate/alist/pkg/utils"
 )
 
 var LastLaunchedVersion = ""

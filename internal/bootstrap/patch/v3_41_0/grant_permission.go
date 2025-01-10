@@ -1,8 +1,8 @@
 package v3_41_0
 
 import (
-	"github.com/alist-org/alist/v3/internal/op"
-	"github.com/alist-org/alist/v3/pkg/utils"
+	"github.com/coordinate/alist/internal/op"
+	"github.com/coordinate/alist/pkg/utils"
 )
 
 // GrantAdminPermissions gives admin Permission 0(can see hidden) - 9(webdav manage)

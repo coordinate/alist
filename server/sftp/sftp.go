@@ -1,12 +1,13 @@
 package sftp
 
 import (
-	"github.com/KirCute/sftpd-alist"
-	"github.com/alist-org/alist/v3/internal/errs"
-	"github.com/alist-org/alist/v3/internal/model"
-	"github.com/alist-org/alist/v3/pkg/utils"
-	"github.com/alist-org/alist/v3/server/ftp"
 	"os"
+
+	"github.com/KirCute/sftpd-alist"
+	"github.com/coordinate/alist/internal/errs"
+	"github.com/coordinate/alist/internal/model"
+	"github.com/coordinate/alist/pkg/utils"
+	"github.com/coordinate/alist/server/ftp"
 )
 
 type DriverAdapter struct {
