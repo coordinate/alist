@@ -84,7 +84,7 @@ func videoProxyHandler(w http.ResponseWriter, r *http.Request, videoURL string, 
 	// Start a goroutine to read from the video response and decrypt the data
 	go func() {
 		defer pipeWriter.Close()
-		bufferSize := 1024 * 64 // 64KB buffer
+		bufferSize := 1024 * 16 // 16KB buffer
 		buffer := make([]byte, bufferSize)
 		// flag := 1
 		for {
@@ -142,11 +142,8 @@ func Init(e *gin.Engine) {
 		parts := strings.SplitN(value.(string), "http", 2)
 		size, _ := strconv.Atoi(parts[0])
 		rawUrl := "http" + parts[1]
-		fmt.Println(size)
-		fmt.Println(rawUrl)
-		// proxy, _ := NewProxy(rawUrl, size)
-		// proxy.ServeHTTP(c.Writer, c.Request)
-		// httpProxy(c.Writer, c.Request, rawUrl)
+		// fmt.Println(size)
+		// fmt.Println(rawUrl)
 		videoProxyHandler(c.Writer, c.Request, rawUrl, size)
 	})
 	// *******************************************
