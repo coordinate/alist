@@ -1,6 +1,8 @@
 package common
 
 import (
+	"context"
+	"net/http"
 	"strings"
 
 	"github.com/coordinate/alist/cmd/flags"
@@ -79,4 +81,11 @@ func SuccessResp(c *gin.Context, data ...interface{}) {
 		Message: "success",
 		Data:    data[0],
 	})
+}
+
+func GetHttpReq(ctx context.Context) *http.Request {
+	if c, ok := ctx.(*gin.Context); ok {
+		return c.Request
+	}
+	return nil
 }

@@ -11,14 +11,13 @@ import (
 	"time"
 
 	"github.com/Xhofe/go-cache"
-
-	"github.com/coordinate/alist/internal/conf"
-	"github.com/coordinate/alist/internal/db"
-	"github.com/coordinate/alist/internal/model"
-	"github.com/coordinate/alist/internal/setting"
-	"github.com/coordinate/alist/pkg/utils"
-	"github.com/coordinate/alist/pkg/utils/random"
-	"github.com/coordinate/alist/server/common"
+	"github.com/alist-org/alist/v3/internal/conf"
+	"github.com/alist-org/alist/v3/internal/db"
+	"github.com/alist-org/alist/v3/internal/model"
+	"github.com/alist-org/alist/v3/internal/setting"
+	"github.com/alist-org/alist/v3/pkg/utils"
+	"github.com/alist-org/alist/v3/pkg/utils/random"
+	"github.com/alist-org/alist/v3/server/common"
 	"github.com/coreos/go-oidc"
 	"github.com/gin-gonic/gin"
 	"github.com/go-resty/resty/v2"
@@ -124,6 +123,10 @@ func GetOIDCClient(c *gin.Context, useCompatibility bool, redirectUri, method st
 	}
 	clientId := setting.GetStr(conf.SSOClientId)
 	clientSecret := setting.GetStr(conf.SSOClientSecret)
+	extraScopes := []string{}
+	if setting.GetStr(conf.SSOExtraScopes) != "" {
+		extraScopes = strings.Split(setting.GetStr(conf.SSOExtraScopes), " ")
+	}
 	return &oauth2.Config{
 		ClientID:     clientId,
 		ClientSecret: clientSecret,
@@ -133,7 +136,7 @@ func GetOIDCClient(c *gin.Context, useCompatibility bool, redirectUri, method st
 		Endpoint: provider.Endpoint(),
 
 		// "openid" is a required scope for OpenID Connect flows.
-		Scopes: []string{oidc.ScopeOpenID, "profile"},
+		Scopes: append([]string{oidc.ScopeOpenID, "profile"}, extraScopes...),
 	}, nil
 }
 

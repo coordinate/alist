@@ -3,6 +3,7 @@ package pikpak
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"github.com/coordinate/alist/drivers/pikpak"
 	"github.com/coordinate/alist/internal/errs"
@@ -105,6 +106,10 @@ func (p *PikPak) Status(task *tool.DownloadTask) (*tool.Status, error) {
 			s.Progress = float64(t.Progress)
 			s.Status = t.Message
 			s.Completed = (t.Phase == "PHASE_TYPE_COMPLETE")
+			s.TotalBytes, err = strconv.ParseInt(t.FileSize, 10, 64)
+			if err != nil {
+				s.TotalBytes = 0
+			}
 			if t.Phase == "PHASE_TYPE_ERROR" {
 				s.Err = fmt.Errorf(t.Message)
 			}

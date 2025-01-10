@@ -2,7 +2,6 @@ package pikpak
 
 import (
 	"bytes"
-	"context"
 	"crypto/md5"
 	"crypto/sha1"
 	"encoding/hex"
@@ -15,20 +14,20 @@ import (
 	"sync"
 	"time"
 
+	"github.com/alist-org/alist/v3/internal/driver"
+	"github.com/alist-org/alist/v3/internal/model"
+	"github.com/alist-org/alist/v3/internal/op"
+	"github.com/alist-org/alist/v3/pkg/utils"
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
+	"github.com/coordinate/alist/drivers/base"
 	"github.com/coordinate/alist/internal/driver"
 	"github.com/coordinate/alist/internal/model"
 	"github.com/coordinate/alist/internal/op"
 	"github.com/coordinate/alist/pkg/utils"
+	"github.com/go-resty/resty/v2"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
-	"golang.org/x/oauth2"
-
-	"github.com/coordinate/alist/drivers/base"
-	"github.com/go-resty/resty/v2"
 )
-
-// do others that not defined in Driver interface
 
 var AndroidAlgorithms = []string{
 	"7xOq4Z8s",
@@ -172,30 +171,6 @@ func (d *PikPak) refreshToken(refreshToken string) error {
 	return nil
 }
 
-func (d *PikPak) initializeOAuth2Token(ctx context.Context, oauth2Config *oauth2.Config, refreshToken string) {
-	d.oauth2Token = oauth2.ReuseTokenSource(nil, utils.TokenSource(func() (*oauth2.Token, error) {
-		return oauth2Config.TokenSource(ctx, &oauth2.Token{
-			RefreshToken: refreshToken,
-		}).Token()
-	}))
-}
-
-func (d *PikPak) refreshTokenByOAuth2() error {
-	token, err := d.oauth2Token.Token()
-	if err != nil {
-		return err
-	}
-	d.Status = "work"
-	d.RefreshToken = token.RefreshToken
-	d.AccessToken = token.AccessToken
-	// 获取用户ID
-	userID := token.Extra("sub").(string)
-	d.Common.SetUserID(userID)
-	d.Addition.RefreshToken = d.RefreshToken
-	op.MustSaveDriverStorage(d)
-	return nil
-}
-
 func (d *PikPak) request(url string, method string, callback base.ReqCallback, resp interface{}) ([]byte, error) {
 	req := base.RestyClient.R()
 	req.SetHeaders(map[string]string{
@@ -204,14 +179,7 @@ func (d *PikPak) request(url string, method string, callback base.ReqCallback, r
 		"X-Device-ID":     d.GetDeviceID(),
 		"X-Captcha-Token": d.GetCaptchaToken(),
 	})
-	if d.RefreshTokenMethod == "oauth2" && d.oauth2Token != nil {
-		// 使用oauth2 获取 access_token
-		token, err := d.oauth2Token.Token()
-		if err != nil {
-			return nil, err
-		}
-		req.SetAuthScheme(token.TokenType).SetAuthToken(token.AccessToken)
-	} else if d.AccessToken != "" {
+	if d.AccessToken != "" {
 		req.SetHeader("Authorization", "Bearer "+d.AccessToken)
 	}
 
@@ -233,16 +201,9 @@ func (d *PikPak) request(url string, method string, callback base.ReqCallback, r
 		return res.Body(), nil
 	case 4122, 4121, 16:
 		// access_token 过期
-		if d.RefreshTokenMethod == "oauth2" {
-			if err1 := d.refreshTokenByOAuth2(); err1 != nil {
-				return nil, err1
-			}
-		} else {
-			if err1 := d.refreshToken(d.RefreshToken); err1 != nil {
-				return nil, err1
-			}
+		if err1 := d.refreshToken(d.RefreshToken); err1 != nil {
+			return nil, err1
 		}
-
 		return d.request(url, method, callback, resp)
 	case 9: // 验证码token过期
 		if err = d.RefreshCaptchaTokenAtLogin(GetAction(method, url), d.GetUserID()); err != nil {
