@@ -9,6 +9,8 @@ import (
 
 const source = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-~+"
 
+// ****************************************************
+
 func initKSA(passwd string) string {
 	var key []byte
 	if len(passwd) > 0 {
@@ -172,3 +174,5 @@ func RandomStr(length int) string {
 func GetSourceChar(index byte) byte {
 	return source[index]
 }
+
+// ****************************************************

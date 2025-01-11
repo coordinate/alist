@@ -10,6 +10,8 @@ import (
 	// "github.com/CrackedPoly/AES-implementation-in-Golang/src/aes"
 )
 
+// ****************************************************
+
 type AesCTR struct {
 	password      string
 	sizeSalt      string
@@ -120,6 +122,8 @@ func (ac *AesCTR) incrementIV(increment uint32) {
 		binary.BigEndian.PutUint32(ac.iv[offset:offset+4], numLittle)
 	}
 }
+
+// ****************************************************
 
 // func (ac *AesCTR) incrementIV(increment uint32) {
 // 	incrementBig := increment / MAX_UINT32

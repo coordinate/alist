@@ -20,6 +20,8 @@ var POLY8 = struct {
 	CRC_8_WCDMA:       0x9b,
 }
 
+// ****************************************************
+
 // Constructor for CRCn
 func NewCRCn(num int, polynomial byte, initialValue byte) *CRCn {
 	if polynomial == 0 {
@@ -94,3 +96,5 @@ func (crc *CRCn) generateTable6() []byte {
 	}
 	return csTable
 }
+
+// ****************************************************
