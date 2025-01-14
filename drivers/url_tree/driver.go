@@ -3,10 +3,11 @@ package url_tree
 import (
 	"context"
 	"errors"
-	"github.com/alist-org/alist/v3/internal/op"
 	stdpath "path"
 	"strings"
 	"sync"
+
+	"github.com/coordinate/alist/internal/op"
 
 	"github.com/coordinate/alist/internal/driver"
 	"github.com/coordinate/alist/internal/errs"

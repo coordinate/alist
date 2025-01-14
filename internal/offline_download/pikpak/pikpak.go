@@ -3,9 +3,10 @@ package pikpak
 import (
 	"context"
 	"fmt"
-	"github.com/alist-org/alist/v3/internal/conf"
-	"github.com/alist-org/alist/v3/internal/setting"
 	"strconv"
+
+	"github.com/coordinate/alist/internal/conf"
+	"github.com/coordinate/alist/internal/setting"
 
 	"github.com/coordinate/alist/drivers/pikpak"
 	"github.com/coordinate/alist/internal/errs"
