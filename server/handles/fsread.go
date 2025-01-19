@@ -2,7 +2,7 @@ package handles
 
 import (
 	"fmt"
-	stdpath "path"
+	stdPath "path"
 	"strings"
 	"time"
 
@@ -315,12 +315,13 @@ func FsGet(c *gin.Context) {
 				// ****************************************************
 				link.URL = encrypt.Redirect(c.Request.Host, reqPath, link.URL, obj.GetSize())
 				// ****************************************************
+				fmt.Println(encrypt.RawURLCache)
 				rawURL = link.URL
 			}
 		}
 	}
 	var related []model.Obj
-	parentPath := stdpath.Dir(reqPath)
+	parentPath := stdPath.Dir(reqPath)
 	sameLevelFiles, err := fs.List(c, parentPath, &fs.ListArgs{})
 	if err == nil {
 		related = filterRelated(sameLevelFiles, obj)
@@ -350,7 +351,7 @@ func FsGet(c *gin.Context) {
 
 func filterRelated(objs []model.Obj, obj model.Obj) []model.Obj {
 	var related []model.Obj
-	nameWithoutExt := strings.TrimSuffix(obj.GetName(), stdpath.Ext(obj.GetName()))
+	nameWithoutExt := strings.TrimSuffix(obj.GetName(), stdPath.Ext(obj.GetName()))
 	for _, o := range objs {
 		if o.GetName() == obj.GetName() {
 			continue

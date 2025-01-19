@@ -18,7 +18,7 @@ type AesCTR struct {
 	passwdOutward string
 	key           []byte
 	iv            []byte
-	soureIv       []byte
+	sourceIv      []byte
 	cipher        cipher.Stream
 }
 
@@ -48,9 +48,9 @@ func NewAesCTR(password string, sizeSalt int) (*AesCTR, error) {
 	ac.key = hashMD5[:16] // AES-128 requires a 16-byte key
 	ac.iv = md5Sum(ac.sizeSalt)[:16]
 
-	// Copy to soureIv
-	ac.soureIv = make([]byte, len(ac.iv))
-	copy(ac.soureIv, ac.iv)
+	// Copy to sourceIv
+	ac.sourceIv = make([]byte, len(ac.iv))
+	copy(ac.sourceIv, ac.iv)
 	return ac, nil
 }
 
@@ -88,8 +88,8 @@ func (ac *AesCTR) Decrypt(message []byte) []byte {
 }
 
 func (ac *AesCTR) SetPosition(position int) {
-	ac.iv = make([]byte, len(ac.soureIv))
-	copy(ac.iv, ac.soureIv)
+	ac.iv = make([]byte, len(ac.sourceIv))
+	copy(ac.iv, ac.sourceIv)
 
 	increment := position / 16
 	ac.incrementIV(uint32(increment))
@@ -122,73 +122,3 @@ func (ac *AesCTR) incrementIV(increment uint32) {
 		binary.BigEndian.PutUint32(ac.iv[offset:offset+4], numLittle)
 	}
 }
-
-// ****************************************************
-
-// func (ac *AesCTR) incrementIV(increment uint32) {
-// 	incrementBig := increment / MAX_UINT32
-// 	incrementLittle := increment % MAX_UINT32
-
-// 	// split the 128 bits IV in 4 numbers, 32 bits each
-// 	overflow := uint32(0)
-// 	for idx := 0; idx < 4; idx++ {
-// 		num := binary.BigEndian.Uint32(ac.iv[12-idx*4 : 16-idx*4])
-// 		incValue := overflow
-// 		if idx == 0 {
-// 			incValue += incrementLittle
-// 		}
-// 		if idx == 1 {
-// 			incValue += incrementBig
-// 		}
-// 		num += incValue
-
-// 		numBig := num / MAX_UINT32
-// 		numLittle := num % MAX_UINT32
-// 		overflow = numBig
-// 		binary.BigEndian.PutUint32(ac.iv[12-idx*4:16-idx*4], numLittle)
-// 	}
-// }
-
-// func (ac *AesCTR) incrementIV(increment int) {
-// 	const maxUint32 = 0xffffffff
-// 	incrementBig := increment / maxUint32
-// 	incrementLittle := increment % maxUint32
-
-// 	// Split the 128 bits IV into 4 numbers, 32 bits each
-// 	overflow := 0
-// 	for i := 0; i < 4; i++ {
-// 		num := binary.BigEndian.Uint32(ac.iv[12-4*i : 16-4*i])
-// 		inc := overflow
-// 		if i == 0 {
-// 			inc += incrementLittle
-// 		}
-// 		if i == 1 {
-// 			inc += incrementBig
-// 		}
-// 		num += uint32(inc)
-// 		overflow = int(num >> 32)
-// 		binary.BigEndian.PutUint32(ac.iv[12-4*i:16-4*i], uint32(num))
-// 	}
-// }
-
-// func DecryptAES128CTR(key []byte, iv []byte, ciphertext []byte) ([]byte, error) {
-// 	// // Create a new AES cipher
-// 	// block, err := aes.NewCipher(key)
-// 	// if err != nil {
-// 	// 	return nil, err
-// 	// }
-// 	// // Create a new CTR stream
-// 	// stream := cipher.NewCTR(block, iv)
-// 	// // Create a buffer to hold the decrypted data
-// 	// plaintext := make([]byte, len(ciphertext))
-// 	// // XOR the ciphertext with the stream to decrypt
-// 	// stream.XORKeyStream(plaintext, ciphertext)
-// 	// return plaintext, nil
-// 	_aes, err := aes.NewAES(key)
-// 	if err != nil {
-// 		fmt.Printf("%s", err)
-// 		return nil, err
-// 	}
-// 	plaintext := _aes.EncryptCTR(ciphertext, iv)
-// 	return plaintext, nil
-// }
