@@ -2,14 +2,22 @@ package tool
 
 import (
 	"context"
+	"net/url"
+	"path"
 	"path/filepath"
 
+	_115 "github.com/coordinate/alist/drivers/115"
+	"github.com/coordinate/alist/drivers/pikpak"
+	"github.com/coordinate/alist/drivers/thunder"
+	"github.com/coordinate/alist/internal/driver"
 	"github.com/coordinate/alist/internal/model"
+	"github.com/coordinate/alist/internal/setting"
 	"github.com/coordinate/alist/internal/task"
-
 	"github.com/coordinate/alist/internal/conf"
 	"github.com/coordinate/alist/internal/errs"
+	"github.com/coordinate/alist/internal/model"
 	"github.com/coordinate/alist/internal/op"
+	"github.com/coordinate/alist/internal/task"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 )
@@ -31,18 +39,6 @@ type AddURLArgs struct {
 }
 
 func AddURL(ctx context.Context, args *AddURLArgs) (task.TaskExtensionInfo, error) {
-	// get tool
-	tool, err := Tools.Get(args.Tool)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed get tool")
-	}
-	// check tool is ready
-	if !tool.IsReady() {
-		// try to init tool
-		if _, err := tool.Init(); err != nil {
-			return nil, errors.Wrapf(err, "failed init tool %s", args.Tool)
-		}
-	}
 	// check storage
 	storage, dstDirActualPath, err := op.GetStorageAndActualPath(args.DstDirPath)
 	if err != nil {
@@ -64,24 +60,48 @@ func AddURL(ctx context.Context, args *AddURLArgs) (task.TaskExtensionInfo, erro
 			return nil, errors.WithStack(errs.NotFolder)
 		}
 	}
+	// try putting url
+	if args.Tool == "SimpleHttp" && tryPutUrl(ctx, storage, dstDirActualPath, args.URL) {
+		return nil, nil
+	}
+
+	// get tool
+	tool, err := Tools.Get(args.Tool)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed get tool")
+	}
+	// check tool is ready
+	if !tool.IsReady() {
+		// try to init tool
+		if _, err := tool.Init(); err != nil {
+			return nil, errors.Wrapf(err, "failed init tool %s", args.Tool)
+		}
+	}
 
 	uid := uuid.NewString()
 	tempDir := filepath.Join(conf.Conf.TempDir, args.Tool, uid)
 	deletePolicy := args.DeletePolicy
 
+	// 如果当前 storage 是对应网盘，则直接下载到目标路径，无需转存
 	switch args.Tool {
 	case "115 Cloud":
-		tempDir = args.DstDirPath
-		// 防止将下载好的文件删除
-		deletePolicy = DeleteNever
-	case "pikpak":
-		tempDir = args.DstDirPath
-		// 防止将下载好的文件删除
-		deletePolicy = DeleteNever
-	case "thunder":
-		tempDir = args.DstDirPath
-		// 防止将下载好的文件删除
-		deletePolicy = DeleteNever
+		if _, ok := storage.(*_115.Pan115); ok {
+			tempDir = args.DstDirPath
+		} else {
+			tempDir = filepath.Join(setting.GetStr(conf.Pan115TempDir), uid)
+		}
+	case "PikPak":
+		if _, ok := storage.(*pikpak.PikPak); ok {
+			tempDir = args.DstDirPath
+		} else {
+			tempDir = filepath.Join(setting.GetStr(conf.PikPakTempDir), uid)
+		}
+	case "Thunder":
+		if _, ok := storage.(*thunder.Thunder); ok {
+			tempDir = args.DstDirPath
+		} else {
+			tempDir = filepath.Join(setting.GetStr(conf.ThunderTempDir), uid)
+		}
 	}
 
 	taskCreator, _ := ctx.Value("user").(*model.User) // taskCreator is nil when convert failed
@@ -98,4 +118,19 @@ func AddURL(ctx context.Context, args *AddURLArgs) (task.TaskExtensionInfo, erro
 	}
 	DownloadTaskManager.Add(t)
 	return t, nil
+}
+
+func tryPutUrl(ctx context.Context, storage driver.Driver, dstDirActualPath, urlStr string) bool {
+	_, ok := storage.(driver.PutURL)
+	_, okResult := storage.(driver.PutURLResult)
+	if !ok && !okResult {
+		return false
+	}
+	u, err := url.Parse(urlStr)
+	if err != nil {
+		return false
+	}
+	dstName := path.Base(u.Path)
+	err = op.PutURL(ctx, storage, dstDirActualPath, dstName, urlStr)
+	return err == nil
 }

@@ -24,6 +24,7 @@ import (
 	_ "github.com/coordinate/alist/drivers/dropbox"
 	_ "github.com/coordinate/alist/drivers/febbox"
 	_ "github.com/coordinate/alist/drivers/ftp"
+	_ "github.com/coordinate/alist/drivers/github"
 	_ "github.com/coordinate/alist/drivers/google_drive"
 	_ "github.com/coordinate/alist/drivers/google_photo"
 	_ "github.com/coordinate/alist/drivers/halalcloud"

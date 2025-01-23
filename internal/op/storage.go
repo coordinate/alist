@@ -10,6 +10,7 @@ import (
 
 	"github.com/coordinate/alist/internal/db"
 	"github.com/coordinate/alist/internal/driver"
+	"github.com/coordinate/alist/internal/errs"
 	"github.com/coordinate/alist/internal/model"
 	"github.com/coordinate/alist/pkg/generic_sync"
 	"github.com/coordinate/alist/pkg/utils"
@@ -106,6 +107,29 @@ func initStorage(ctx context.Context, storage model.Storage, storageDriver drive
 	}()
 	// Unmarshal Addition
 	err = utils.Json.UnmarshalFromString(driverStorage.Addition, storageDriver.GetAddition())
+	if err == nil {
+		if ref, ok := storageDriver.(driver.Reference); ok {
+			if strings.HasPrefix(driverStorage.Remark, "ref:/") {
+				refMountPath := driverStorage.Remark
+				i := strings.Index(refMountPath, "\n")
+				if i > 0 {
+					refMountPath = refMountPath[4:i]
+				} else {
+					refMountPath = refMountPath[4:]
+				}
+				var refStorage driver.Driver
+				refStorage, err = GetStorageByMountPath(refMountPath)
+				if err != nil {
+					err = fmt.Errorf("ref: %w", err)
+				} else {
+					err = ref.InitReference(refStorage)
+					if err != nil && errs.IsNotSupportError(err) {
+						err = fmt.Errorf("ref: storage is not %s", storageDriver.Config().Name)
+					}
+				}
+			}
+		}
+	}
 	if err == nil {
 		err = storageDriver.Init(ctx)
 	}

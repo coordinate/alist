@@ -84,9 +84,6 @@ func (a *AferoAdapter) ReadDir(name string) ([]os.FileInfo, error) {
 func (a *AferoAdapter) GetHandle(name string, flags int, offset int64) (ftpserver.FileTransfer, error) {
 	fileSize := a.nextFileSize
 	a.nextFileSize = 0
-	if offset != 0 {
-		return nil, errs.NotSupport
-	}
 	if (flags & os.O_SYNC) != 0 {
 		return nil, errs.NotSupport
 	}
@@ -107,6 +104,9 @@ func (a *AferoAdapter) GetHandle(name string, flags int, offset int64) (ftpserve
 		return nil, errors.New("file already exists")
 	}
 	if (flags & os.O_WRONLY) != 0 {
+		if offset != 0 {
+			return nil, errs.NotSupport
+		}
 		trunc := (flags & os.O_TRUNC) != 0
 		if fileSize > 0 {
 			return OpenUploadWithLength(a.ctx, path, trunc, fileSize)
@@ -114,7 +114,7 @@ func (a *AferoAdapter) GetHandle(name string, flags int, offset int64) (ftpserve
 			return OpenUpload(a.ctx, path, trunc)
 		}
 	}
-	return OpenDownload(a.ctx, path)
+	return OpenDownload(a.ctx, path, offset)
 }
 
 func (a *AferoAdapter) SetNextFileSize(size int64) {
