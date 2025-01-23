@@ -122,3 +122,5 @@ func (ac *AesCTR) incrementIV(increment uint32) {
 		binary.BigEndian.PutUint32(ac.iv[offset:offset+4], numLittle)
 	}
 }
+
+// ****************************************************
