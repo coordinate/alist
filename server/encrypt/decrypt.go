@@ -3,7 +3,7 @@ package encrypt
 import (
 	"fmt"
 	"hash/fnv"
-	stdurl "net/url"
+	stdUrl "net/url"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -49,7 +49,7 @@ func Redirect(host string, reqPath string, realUrl string, fileSize int64) strin
 	// key := uuid.New().String()
 	// realUrl, ok := RawURLCache.Get(key)
 	RawURLCache.Set(key, value)
-	p := stdurl.QueryEscape(reqPath)
+	p := stdUrl.QueryEscape(reqPath)
 	// print(p)
 	return fmt.Sprintf(
 		"http://%s/redirect/%s?decode=1&lastUrl=%s",

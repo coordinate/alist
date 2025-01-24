@@ -9,8 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"golang.org/x/time/rate"
-
+	_123 "github.com/coordinate/alist/drivers/123"
 	"github.com/coordinate/alist/drivers/base"
 	"github.com/coordinate/alist/internal/driver"
 	"github.com/coordinate/alist/internal/errs"
@@ -18,12 +17,14 @@ import (
 	"github.com/coordinate/alist/pkg/utils"
 	"github.com/go-resty/resty/v2"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/time/rate"
 )
 
 type Pan123Share struct {
 	model.Storage
 	Addition
 	apiRateLimit sync.Map
+	ref          *_123.Pan123
 }
 
 func (d *Pan123Share) Config() driver.Config {
@@ -40,7 +41,17 @@ func (d *Pan123Share) Init(ctx context.Context) error {
 	return nil
 }
 
+func (d *Pan123Share) InitReference(storage driver.Driver) error {
+	refStorage, ok := storage.(*_123.Pan123)
+	if ok {
+		d.ref = refStorage
+		return nil
+	}
+	return fmt.Errorf("ref: storage is not 123Pan")
+}
+
 func (d *Pan123Share) Drop(ctx context.Context) error {
+	d.ref = nil
 	return nil
 }
 

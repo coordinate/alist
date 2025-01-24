@@ -6,14 +6,13 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/coordinate/alist/internal/conf"
-	"github.com/coordinate/alist/internal/setting"
-
 	"github.com/coordinate/alist/drivers/thunder"
+	"github.com/coordinate/alist/internal/conf"
 	"github.com/coordinate/alist/internal/errs"
 	"github.com/coordinate/alist/internal/model"
 	"github.com/coordinate/alist/internal/offline_download/tool"
 	"github.com/coordinate/alist/internal/op"
+	"github.com/coordinate/alist/internal/setting"
 )
 
 type Thunder struct {

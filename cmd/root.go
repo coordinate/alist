@@ -6,6 +6,7 @@ import (
 
 	"github.com/coordinate/alist/cmd/flags"
 	_ "github.com/coordinate/alist/drivers"
+	_ "github.com/coordinate/alist/internal/archive"
 	_ "github.com/coordinate/alist/internal/offline_download"
 	"github.com/spf13/cobra"
 )

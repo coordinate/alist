@@ -2,7 +2,6 @@ package ftp
 
 import (
 	"context"
-	"io"
 	fs2 "io/fs"
 	"net/http"
 	"os"
@@ -14,16 +13,13 @@ import (
 	"github.com/coordinate/alist/internal/model"
 	"github.com/coordinate/alist/internal/op"
 	"github.com/coordinate/alist/internal/stream"
-	"github.com/coordinate/alist/pkg/http_range"
 	"github.com/coordinate/alist/server/common"
 	"github.com/pkg/errors"
 )
 
 type FileDownloadProxy struct {
 	ftpserver.FileTransfer
-	ss     *stream.SeekableStream
-	reader io.Reader
-	cur    int64
+	reader stream.SStreamReadAtSeeker
 }
 
 func OpenDownload(ctx context.Context, reqPath string, offset int64) (*FileDownloadProxy, error) {
@@ -56,22 +52,16 @@ func OpenDownload(ctx context.Context, reqPath string, offset int64) (*FileDownl
 	if err != nil {
 		return nil, err
 	}
-	var reader io.Reader
-	if offset != 0 {
-		reader, err = ss.RangeRead(http_range.Range{Start: offset, Length: -1})
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		reader = ss
+	reader, err := stream.NewReadAtSeeker(ss, offset)
+	if err != nil {
+		_ = ss.Close()
+		return nil, err
 	}
-	return &FileDownloadProxy{ss: ss, reader: reader}, nil
+	return &FileDownloadProxy{reader: reader}, nil
 }
 
 func (f *FileDownloadProxy) Read(p []byte) (n int, err error) {
-	n, err = f.reader.Read(p)
-	f.cur += int64(n)
-	return n, err
+	return f.reader.Read(p)
 }
 
 func (f *FileDownloadProxy) Write(p []byte) (n int, err error) {
@@ -79,32 +69,11 @@ func (f *FileDownloadProxy) Write(p []byte) (n int, err error) {
 }
 
 func (f *FileDownloadProxy) Seek(offset int64, whence int) (int64, error) {
-	switch whence {
-	case io.SeekStart:
-		break
-	case io.SeekCurrent:
-		offset += f.cur
-		break
-	case io.SeekEnd:
-		offset += f.ss.GetSize()
-		break
-	default:
-		return 0, errs.NotSupport
-	}
-	if offset < 0 {
-		return 0, errors.New("Seek: negative position")
-	}
-	reader, err := f.ss.RangeRead(http_range.Range{Start: offset, Length: -1})
-	if err != nil {
-		return f.cur, err
-	}
-	f.cur = offset
-	f.reader = reader
-	return offset, nil
+	return f.reader.Seek(offset, whence)
 }
 
 func (f *FileDownloadProxy) Close() error {
-	return f.ss.Close()
+	return f.reader.Close()
 }
 
 type OsFileInfoAdapter struct {
