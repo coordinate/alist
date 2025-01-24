@@ -17,15 +17,6 @@ import (
 	"github.com/coordinate/alist/pkg/http_range"
 	"github.com/coordinate/alist/server/common"
 	"github.com/pkg/errors"
-
-	ftpserver "github.com/KirCute/ftpserverlib-pasvportmap"
-	"github.com/coordinate/alist/internal/errs"
-	"github.com/coordinate/alist/internal/fs"
-	"github.com/coordinate/alist/internal/model"
-	"github.com/coordinate/alist/internal/op"
-	"github.com/coordinate/alist/internal/stream"
-	"github.com/coordinate/alist/server/common"
-	"github.com/pkg/errors"
 )
 
 type FileDownloadProxy struct {

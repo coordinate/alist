@@ -14,9 +14,6 @@ import (
 	"github.com/coordinate/alist/internal/setting"
 	"github.com/coordinate/alist/internal/task"
 
-	"github.com/coordinate/alist/internal/model"
-	"github.com/coordinate/alist/internal/task"
-
 	"github.com/coordinate/alist/internal/conf"
 	"github.com/coordinate/alist/internal/errs"
 	"github.com/coordinate/alist/internal/op"
