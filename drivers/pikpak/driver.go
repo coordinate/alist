@@ -70,7 +70,7 @@ func (d *PikPak) Init(ctx context.Context) (err error) {
 		d.ClientVersion = PCClientVersion
 		d.PackageName = PCPackageName
 		d.Algorithms = PCAlgorithms
-		d.UserAgent = "MainWindow Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) PikPak/2.5.6.4831 Chrome/100.0.4896.160 Electron/18.3.15 Safari/537.36"
+		d.UserAgent = "MainWindow Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) PikPak/2.6.11.4955 Chrome/100.0.4896.160 Electron/18.3.15 Safari/537.36"
 	}
 
 	if d.Addition.CaptchaToken != "" && d.Addition.RefreshToken == "" {
@@ -256,10 +256,10 @@ func (d *PikPak) Put(ctx context.Context, dstDir model.Obj, stream model.FileStr
 	}
 
 	if stream.GetSize() <= 10*utils.MB { // 文件大小 小于10MB，改用普通模式上传
-		return d.UploadByOSS(&params, stream, up)
+		return d.UploadByOSS(ctx, &params, stream, up)
 	}
 	// 分片上传
-	return d.UploadByMultipart(&params, stream.GetSize(), stream, up)
+	return d.UploadByMultipart(ctx, &params, stream.GetSize(), stream, up)
 }
 
 // 离线下载文件

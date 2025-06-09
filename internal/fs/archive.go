@@ -4,17 +4,6 @@ import (
 	"context"
 	stderrors "errors"
 	"fmt"
-	"github.com/coordinate/alist/internal/archive/tool"
-	"github.com/coordinate/alist/internal/conf"
-	"github.com/coordinate/alist/internal/driver"
-	"github.com/coordinate/alist/internal/errs"
-	"github.com/coordinate/alist/internal/model"
-	"github.com/coordinate/alist/internal/op"
-	"github.com/coordinate/alist/internal/stream"
-	"github.com/coordinate/alist/internal/task"
-	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
-	"github.com/xhofe/tache"
 	"io"
 	"math/rand"
 	"mime"
@@ -25,6 +14,17 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/coordinate/alist/internal/conf"
+	"github.com/coordinate/alist/internal/driver"
+	"github.com/coordinate/alist/internal/errs"
+	"github.com/coordinate/alist/internal/model"
+	"github.com/coordinate/alist/internal/op"
+	"github.com/coordinate/alist/internal/stream"
+	"github.com/coordinate/alist/internal/task"
+	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
+	"github.com/xhofe/tache"
 )
 
 type ArchiveDownloadTask struct {
@@ -37,7 +37,6 @@ type ArchiveDownloadTask struct {
 	dstStorage   driver.Driver
 	SrcStorageMp string
 	DstStorageMp string
-	Tool         tool.Tool
 }
 
 func (t *ArchiveDownloadTask) GetName() string {
@@ -50,6 +49,7 @@ func (t *ArchiveDownloadTask) GetStatus() string {
 }
 
 func (t *ArchiveDownloadTask) Run() error {
+	t.ReinitCtx()
 	t.ClearEndTime()
 	t.SetStartTime(time.Now())
 	defer func() { t.SetEndTime(time.Now()) }()
@@ -66,33 +66,41 @@ func (t *ArchiveDownloadTask) RunWithoutPushUploadTask() (*ArchiveContentUploadT
 	if t.srcStorage == nil {
 		t.srcStorage, err = op.GetStorageByMountPath(t.SrcStorageMp)
 	}
-	l, srcObj, err := op.Link(t.Ctx(), t.srcStorage, t.SrcObjPath, model.LinkArgs{
+	srcObj, tool, ss, err := op.GetArchiveToolAndStream(t.Ctx(), t.srcStorage, t.SrcObjPath, model.LinkArgs{
 		Header: http.Header{},
 	})
 	if err != nil {
 		return nil, err
 	}
-	fs := stream.FileStream{
-		Obj: srcObj,
-		Ctx: t.Ctx(),
-	}
-	ss, err := stream.NewSeekableStream(fs, l)
-	if err != nil {
-		return nil, err
-	}
 	defer func() {
-		if err := ss.Close(); err != nil {
-			log.Errorf("failed to close file streamer, %v", err)
+		var e error
+		for _, s := range ss {
+			e = stderrors.Join(e, s.Close())
+		}
+		if e != nil {
+			log.Errorf("failed to close file streamer, %v", e)
 		}
 	}()
 	var decompressUp model.UpdateProgress
 	if t.CacheFull {
-		t.SetTotalBytes(srcObj.GetSize())
-		t.status = "getting src object"
-		_, err = ss.CacheFullInTempFileAndUpdateProgress(t.SetProgress)
-		if err != nil {
-			return nil, err
+		var total, cur int64 = 0, 0
+		for _, s := range ss {
+			total += s.GetSize()
 		}
+		t.SetTotalBytes(total)
+		t.status = "getting src object"
+		for _, s := range ss {
+			if s.GetFile() == nil {
+				_, err = stream.CacheFullInTempFileAndUpdateProgress(s, func(p float64) {
+					t.SetProgress((float64(cur) + float64(s.GetSize())*p/100.0) / float64(total))
+				})
+			}
+			cur += s.GetSize()
+			if err != nil {
+				return nil, err
+			}
+		}
+		t.SetProgress(100.0)
 		decompressUp = func(_ float64) {}
 	} else {
 		decompressUp = t.SetProgress
@@ -102,7 +110,7 @@ func (t *ArchiveDownloadTask) RunWithoutPushUploadTask() (*ArchiveContentUploadT
 	if err != nil {
 		return nil, err
 	}
-	err = t.Tool.Decompress(ss, dir, t.ArchiveInnerArgs, decompressUp)
+	err = tool.Decompress(ss, dir, t.ArchiveInnerArgs, decompressUp)
 	if err != nil {
 		return nil, err
 	}
@@ -144,6 +152,7 @@ func (t *ArchiveContentUploadTask) GetStatus() string {
 }
 
 func (t *ArchiveContentUploadTask) Run() error {
+	t.ReinitCtx()
 	t.ClearEndTime()
 	t.SetStartTime(time.Now())
 	defer func() { t.SetEndTime(time.Now()) }()
@@ -235,7 +244,9 @@ func (t *ArchiveContentUploadTask) RunWithNextTaskCallback(f func(nextTsk *Archi
 
 func (t *ArchiveContentUploadTask) Cancel() {
 	t.TaskExtension.Cancel()
-	t.deleteSrcFile()
+	if !conf.Conf.Tasks.AllowRetryCanceled {
+		t.deleteSrcFile()
+	}
 }
 
 func (t *ArchiveContentUploadTask) deleteSrcFile() {
@@ -340,11 +351,6 @@ func archiveDecompress(ctx context.Context, srcObjPath, dstDirPath string, args 
 			return nil, err
 		}
 	}
-	ext := stdpath.Ext(srcObjActualPath)
-	t, err := tool.GetArchiveTool(ext)
-	if err != nil {
-		return nil, errors.WithMessagef(err, "failed get [%s] archive tool", ext)
-	}
 	taskCreator, _ := ctx.Value("user").(*model.User)
 	tsk := &ArchiveDownloadTask{
 		TaskExtension: task.TaskExtension{
@@ -357,7 +363,6 @@ func archiveDecompress(ctx context.Context, srcObjPath, dstDirPath string, args 
 		DstDirPath:            dstDirActualPath,
 		SrcStorageMp:          srcStorage.GetStorage().MountPath,
 		DstStorageMp:          dstStorage.GetStorage().MountPath,
-		Tool:                  t,
 	}
 	if ctx.Value(conf.NoTaskKey) != nil {
 		uploadTask, err := tsk.RunWithoutPushUploadTask()

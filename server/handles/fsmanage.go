@@ -91,7 +91,7 @@ func FsMove(c *gin.Context) {
 	if !req.Overwrite {
 		for _, name := range req.Names {
 			if res, _ := fs.Get(c, stdpath.Join(dstDir, name), &fs.GetArgs{NoLog: true}); res != nil {
-				common.ErrorStrResp(c, "file exists", 403)
+				common.ErrorStrResp(c, fmt.Sprintf("file [%s] exists", name), 403)
 				return
 			}
 		}
@@ -134,7 +134,7 @@ func FsCopy(c *gin.Context) {
 	if !req.Overwrite {
 		for _, name := range req.Names {
 			if res, _ := fs.Get(c, stdpath.Join(dstDir, name), &fs.GetArgs{NoLog: true}); res != nil {
-				common.ErrorStrResp(c, "file exists", 403)
+				common.ErrorStrResp(c, fmt.Sprintf("file [%s] exists", name), 403)
 				return
 			}
 		}
@@ -181,7 +181,7 @@ func FsRename(c *gin.Context) {
 		dstPath := stdpath.Join(stdpath.Dir(reqPath), req.Name)
 		if dstPath != reqPath {
 			if res, _ := fs.Get(c, dstPath, &fs.GetArgs{NoLog: true}); res != nil {
-				common.ErrorStrResp(c, "file exists", 403)
+				common.ErrorStrResp(c, fmt.Sprintf("file [%s] exists", req.Name), 403)
 				return
 			}
 		}

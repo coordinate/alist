@@ -80,7 +80,7 @@ type TreeResp struct {
 }
 
 type TreeReq struct {
-	BaseTree string        `json:"base_tree"`
+	BaseTree interface{}   `json:"base_tree,omitempty"`
 	Trees    []interface{} `json:"tree"`
 }
 
@@ -100,4 +100,9 @@ type UpdateRefReq struct {
 
 type RepoResp struct {
 	DefaultBranch string `json:"default_branch"`
+}
+
+type UserResp struct {
+	Name  string `json:"name"`
+	Email string `json:"email"`
 }

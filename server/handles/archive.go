@@ -1,7 +1,13 @@
 package handles
 
 import (
+	"encoding/json"
 	"fmt"
+	"net/url"
+	stdpath "path"
+
+	"github.com/coordinate/alist/internal/task"
+
 	"github.com/coordinate/alist/internal/archive/tool"
 	"github.com/coordinate/alist/internal/conf"
 	"github.com/coordinate/alist/internal/errs"
@@ -15,9 +21,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"mime"
-	stdpath "path"
-	"strings"
 )
 
 type ArchiveMetaReq struct {
@@ -31,13 +34,14 @@ type ArchiveMetaResp struct {
 	Comment     string               `json:"comment"`
 	IsEncrypted bool                 `json:"encrypted"`
 	Content     []ArchiveContentResp `json:"content"`
+	Sort        *model.Sort          `json:"sort,omitempty"`
 	RawURL      string               `json:"raw_url"`
 	Sign        string               `json:"sign"`
 }
 
 type ArchiveContentResp struct {
 	ObjResp
-	Children []ArchiveContentResp `json:"children,omitempty"`
+	Children []ArchiveContentResp `json:"children"`
 }
 
 func toObjsRespWithoutSignAndThumb(obj model.Obj) ObjResp {
@@ -118,7 +122,7 @@ func FsArchiveMeta(c *gin.Context) {
 	}
 	s := ""
 	if isEncrypt(meta, reqPath) || setting.GetBool(conf.SignAll) {
-		s = sign.Sign(reqPath)
+		s = sign.SignArchive(reqPath)
 	}
 	api := "/ae"
 	if ret.DriverProviding {
@@ -128,6 +132,7 @@ func FsArchiveMeta(c *gin.Context) {
 		Comment:     ret.GetComment(),
 		IsEncrypted: ret.IsEncrypted(),
 		Content:     toContentResp(ret.GetTree()),
+		Sort:        ret.Sort,
 		RawURL:      fmt.Sprintf("%s%s%s", common.GetApiUrl(c.Request), api, utils.EncodePath(reqPath, true)),
 		Sign:        s,
 	})
@@ -205,14 +210,30 @@ func FsArchiveList(c *gin.Context) {
 	})
 }
 
+type StringOrArray []string
+
+func (s *StringOrArray) UnmarshalJSON(data []byte) error {
+	var value string
+	if err := json.Unmarshal(data, &value); err == nil {
+		*s = []string{value}
+		return nil
+	}
+	var sliceValue []string
+	if err := json.Unmarshal(data, &sliceValue); err != nil {
+		return err
+	}
+	*s = sliceValue
+	return nil
+}
+
 type ArchiveDecompressReq struct {
-	SrcDir        string `json:"src_dir" form:"src_dir"`
-	DstDir        string `json:"dst_dir" form:"dst_dir"`
-	Name          string `json:"name" form:"name"`
-	ArchivePass   string `json:"archive_pass" form:"archive_pass"`
-	InnerPath     string `json:"inner_path" form:"inner_path"`
-	CacheFull     bool   `json:"cache_full" form:"cache_full"`
-	PutIntoNewDir bool   `json:"put_into_new_dir" form:"put_into_new_dir"`
+	SrcDir        string        `json:"src_dir" form:"src_dir"`
+	DstDir        string        `json:"dst_dir" form:"dst_dir"`
+	Name          StringOrArray `json:"name" form:"name"`
+	ArchivePass   string        `json:"archive_pass" form:"archive_pass"`
+	InnerPath     string        `json:"inner_path" form:"inner_path"`
+	CacheFull     bool          `json:"cache_full" form:"cache_full"`
+	PutIntoNewDir bool          `json:"put_into_new_dir" form:"put_into_new_dir"`
 }
 
 func FsArchiveDecompress(c *gin.Context) {
@@ -226,41 +247,51 @@ func FsArchiveDecompress(c *gin.Context) {
 		common.ErrorResp(c, errs.PermissionDenied, 403)
 		return
 	}
-	srcPath, err := user.JoinPath(stdpath.Join(req.SrcDir, req.Name))
-	if err != nil {
-		common.ErrorResp(c, err, 403)
-		return
+	srcPaths := make([]string, 0, len(req.Name))
+	for _, name := range req.Name {
+		srcPath, err := user.JoinPath(stdpath.Join(req.SrcDir, name))
+		if err != nil {
+			common.ErrorResp(c, err, 403)
+			return
+		}
+		srcPaths = append(srcPaths, srcPath)
 	}
 	dstDir, err := user.JoinPath(req.DstDir)
 	if err != nil {
 		common.ErrorResp(c, err, 403)
 		return
 	}
-	t, err := fs.ArchiveDecompress(c, srcPath, dstDir, model.ArchiveDecompressArgs{
-		ArchiveInnerArgs: model.ArchiveInnerArgs{
-			ArchiveArgs: model.ArchiveArgs{
-				LinkArgs: model.LinkArgs{
-					Header:  c.Request.Header,
-					Type:    c.Query("type"),
-					HttpReq: c.Request,
+	tasks := make([]task.TaskExtensionInfo, 0, len(srcPaths))
+	for _, srcPath := range srcPaths {
+		t, e := fs.ArchiveDecompress(c, srcPath, dstDir, model.ArchiveDecompressArgs{
+			ArchiveInnerArgs: model.ArchiveInnerArgs{
+				ArchiveArgs: model.ArchiveArgs{
+					LinkArgs: model.LinkArgs{
+						Header:  c.Request.Header,
+						Type:    c.Query("type"),
+						HttpReq: c.Request,
+					},
+					Password: req.ArchivePass,
 				},
-				Password: req.ArchivePass,
+				InnerPath: utils.FixAndCleanPath(req.InnerPath),
 			},
-			InnerPath: utils.FixAndCleanPath(req.InnerPath),
-		},
-		CacheFull:     req.CacheFull,
-		PutIntoNewDir: req.PutIntoNewDir,
-	})
-	if err != nil {
-		if errors.Is(err, errs.WrongArchivePassword) {
-			common.ErrorResp(c, err, 202)
-		} else {
-			common.ErrorResp(c, err, 500)
+			CacheFull:     req.CacheFull,
+			PutIntoNewDir: req.PutIntoNewDir,
+		})
+		if e != nil {
+			if errors.Is(e, errs.WrongArchivePassword) {
+				common.ErrorResp(c, e, 202)
+			} else {
+				common.ErrorResp(c, e, 500)
+			}
+			return
 		}
-		return
+		if t != nil {
+			tasks = append(tasks, t)
+		}
 	}
 	common.SuccessResp(c, gin.H{
-		"task": getTaskInfo(t),
+		"task": getTaskInfos(tasks),
 	})
 }
 
@@ -281,10 +312,11 @@ func ArchiveDown(c *gin.Context) {
 		link, _, err := fs.ArchiveDriverExtract(c, archiveRawPath, model.ArchiveInnerArgs{
 			ArchiveArgs: model.ArchiveArgs{
 				LinkArgs: model.LinkArgs{
-					IP:      c.ClientIP(),
-					Header:  c.Request.Header,
-					Type:    c.Query("type"),
-					HttpReq: c.Request,
+					IP:       c.ClientIP(),
+					Header:   c.Request.Header,
+					Type:     c.Query("type"),
+					HttpReq:  c.Request,
+					Redirect: true,
 				},
 				Password: password,
 			},
@@ -360,14 +392,11 @@ func ArchiveInternalExtract(c *gin.Context) {
 		"Referrer-Policy": "no-referrer",
 		"Cache-Control":   "max-age=0, no-cache, no-store, must-revalidate",
 	}
-	if c.Query("attachment") == "true" {
-		filename := stdpath.Base(innerPath)
-		headers["Content-Disposition"] = fmt.Sprintf("attachment; filename=\"%s\"", filename)
-	}
+	filename := stdpath.Base(innerPath)
+	headers["Content-Disposition"] = fmt.Sprintf(`attachment; filename="%s"; filename*=UTF-8''%s`, filename, url.PathEscape(filename))
 	contentType := c.Request.Header.Get("Content-Type")
 	if contentType == "" {
-		fileExt := stdpath.Ext(innerPath)
-		contentType = mime.TypeByExtension(fileExt)
+		contentType = utils.GetMimeType(filename)
 	}
 	c.DataFromReader(200, size, contentType, rc, headers)
 }
@@ -375,7 +404,7 @@ func ArchiveInternalExtract(c *gin.Context) {
 func ArchiveExtensions(c *gin.Context) {
 	var ext []string
 	for key := range tool.Tools {
-		ext = append(ext, strings.TrimPrefix(key, "."))
+		ext = append(ext, key)
 	}
 	common.SuccessResp(c, ext)
 }

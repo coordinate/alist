@@ -3,24 +3,29 @@ package op
 import (
 	"context"
 	stderrors "errors"
+	"fmt"
 	"io"
 	stdpath "path"
 	"strings"
 	"time"
 
-	"github.com/Xhofe/go-cache"
 	"github.com/coordinate/alist/internal/archive/tool"
-	"github.com/coordinate/alist/internal/driver"
+	"github.com/coordinate/alist/internal/stream"
+	"github.com/coordinate/alist/internal/driver"	
 	"github.com/coordinate/alist/internal/errs"
-	"github.com/coordinate/alist/internal/model"
+	"github.com/coordinate/alist/internal/model"	
 	"github.com/coordinate/alist/internal/stream"
 	"github.com/coordinate/alist/pkg/singleflight"
 	"github.com/coordinate/alist/pkg/utils"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+
 )
 
-var archiveMetaCache = cache.NewMemCache(cache.WithShards[*model.ArchiveMetaProvider](64))
+
+
+var archiveMetaCache = cache.NewM
+emCache(cache.WithShards[*model.ArchiveMetaProvider](64))
 var archiveMetaG singleflight.Group[*model.ArchiveMetaProvider]
 
 func GetArchiveMeta(ctx context.Context, storage driver.Driver, path string, args model.ArchiveMetaArgs) (*model.ArchiveMetaProvider, error) {
@@ -40,8 +45,8 @@ func GetArchiveMeta(ctx context.Context, storage driver.Driver, path string, arg
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to get %s archive met: %+v", path, err)
 		}
-		if !storage.Config().NoCache {
-			archiveMetaCache.Set(key, m, cache.WithEx[*model.ArchiveMetaProvider](time.Minute*time.Duration(storage.GetStorage().CacheExpiration)))
+		if m.Expiration != nil {
+			archiveMetaCache.Set(key, m, cache.WithEx[*model.ArchiveMetaProvider](*m.Expiration))
 		}
 		return m, nil
 	}
@@ -53,21 +58,76 @@ func GetArchiveMeta(ctx context.Context, storage driver.Driver, path string, arg
 	return meta, err
 }
 
-func getArchiveToolAndStream(ctx context.Context, storage driver.Driver, path string, args model.LinkArgs) (model.Obj, tool.Tool, *stream.SeekableStream, error) {
+func GetArchiveToolAndStream(ctx context.Context, storage driver.Driver, path string, args model.LinkArgs) (model.Obj, tool.Tool, []*stream.SeekableStream, error) {
 	l, obj, err := Link(ctx, storage, path, args)
 	if err != nil {
 		return nil, nil, nil, errors.WithMessagef(err, "failed get [%s] link", path)
 	}
-	ext := stdpath.Ext(obj.GetName())
-	t, err := tool.GetArchiveTool(ext)
+	baseName, ext, found := strings.Cut(obj.GetName(), ".")
+	if !found {
+		if l.MFile != nil {
+			_ = l.MFile.Close()
+		}
+		if l.RangeReadCloser != nil {
+			_ = l.RangeReadCloser.Close()
+		}
+		return nil, nil, nil, errors.Errorf("failed get archive tool: the obj does not have an extension.")
+	}
+	partExt, t, err := tool.GetArchiveTool("." + ext)
 	if err != nil {
-		return nil, nil, nil, errors.WithMessagef(err, "failed get [%s] archive tool", ext)
+		var e error
+		partExt, t, e = tool.GetArchiveTool(stdpath.Ext(obj.GetName()))
+		if e != nil {
+			if l.MFile != nil {
+				_ = l.MFile.Close()
+			}
+			if l.RangeReadCloser != nil {
+				_ = l.RangeReadCloser.Close()
+			}
+			return nil, nil, nil, errors.WithMessagef(stderrors.Join(err, e), "failed get archive tool: %s", ext)
+		}
 	}
 	ss, err := stream.NewSeekableStream(stream.FileStream{Ctx: ctx, Obj: obj}, l)
 	if err != nil {
+		if l.MFile != nil {
+			_ = l.MFile.Close()
+		}
+		if l.RangeReadCloser != nil {
+			_ = l.RangeReadCloser.Close()
+		}
 		return nil, nil, nil, errors.WithMessagef(err, "failed get [%s] stream", path)
 	}
-	return obj, t, ss, nil
+	ret := []*stream.SeekableStream{ss}
+	if partExt == nil {
+		return obj, t, ret, nil
+	} else {
+		index := partExt.SecondPartIndex
+		dir := stdpath.Dir(path)
+		for {
+			p := stdpath.Join(dir, baseName+fmt.Sprintf(partExt.PartFileFormat, index))
+			var o model.Obj
+			l, o, err = Link(ctx, storage, p, args)
+			if err != nil {
+				break
+			}
+			ss, err = stream.NewSeekableStream(stream.FileStream{Ctx: ctx, Obj: o}, l)
+			if err != nil {
+				if l.MFile != nil {
+					_ = l.MFile.Close()
+				}
+				if l.RangeReadCloser != nil {
+					_ = l.RangeReadCloser.Close()
+				}
+				for _, s := range ret {
+					_ = s.Close()
+				}
+				return nil, nil, nil, errors.WithMessagef(err, "failed get [%s] stream", path)
+			}
+			ret = append(ret, ss)
+			index++
+		}
+		return obj, t, ret, nil
+	}
 }
 
 func getArchiveMeta(ctx context.Context, storage driver.Driver, path string, args model.ArchiveMetaArgs) (model.Obj, *model.ArchiveMetaProvider, error) {
@@ -82,20 +142,46 @@ func getArchiveMeta(ctx context.Context, storage driver.Driver, path string, arg
 		}
 		meta, err := storageAr.GetArchiveMeta(ctx, obj, args.ArchiveArgs)
 		if !errors.Is(err, errs.NotImplement) {
-			return obj, &model.ArchiveMetaProvider{ArchiveMeta: meta, DriverProviding: true}, err
+			archiveMetaProvider := &model.ArchiveMetaProvider{ArchiveMeta: meta, DriverProviding: true}
+			if meta != nil && meta.GetTree() != nil {
+				archiveMetaProvider.Sort = &storage.GetStorage().Sort
+			}
+			if !storage.Config().NoCache {
+				Expiration := time.Minute * time.Duration(storage.GetStorage().CacheExpiration)
+				archiveMetaProvider.Expiration = &Expiration
+			}
+			return obj, archiveMetaProvider, err
 		}
 	}
-	obj, t, ss, err := getArchiveToolAndStream(ctx, storage, path, args.LinkArgs)
+	obj, t, ss, err := GetArchiveToolAndStream(ctx, storage, path, args.LinkArgs)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer func() {
-		if err := ss.Close(); err != nil {
-			log.Errorf("failed to close file streamer, %v", err)
+		var e error
+		for _, s := range ss {
+			e = stderrors.Join(e, s.Close())
+		}
+		if e != nil {
+			log.Errorf("failed to close file streamer, %v", e)
 		}
 	}()
 	meta, err := t.GetMeta(ss, args.ArchiveArgs)
-	return obj, &model.ArchiveMetaProvider{ArchiveMeta: meta, DriverProviding: false}, err
+	if err != nil {
+		return nil, nil, err
+	}
+	archiveMetaProvider := &model.ArchiveMetaProvider{ArchiveMeta: meta, DriverProviding: false}
+	if meta.GetTree() != nil {
+		archiveMetaProvider.Sort = &storage.GetStorage().Sort
+	}
+	if !storage.Config().NoCache {
+		Expiration := time.Minute * time.Duration(storage.GetStorage().CacheExpiration)
+		archiveMetaProvider.Expiration = &Expiration
+	} else if ss[0].Link.MFile == nil {
+		// alias、crypt 驱动
+		archiveMetaProvider.Expiration = ss[0].Link.Expiration
+	}
+	return obj, archiveMetaProvider, err
 }
 
 var archiveListCache = cache.NewMemCache(cache.WithShards[[]model.Obj](64))
@@ -113,10 +199,10 @@ func ListArchive(ctx context.Context, storage driver.Driver, path string, args m
 			log.Debugf("use cache when list archive [%s]%s", path, args.InnerPath)
 			return files, nil
 		}
-		if meta, ok := archiveMetaCache.Get(metaKey); ok {
-			log.Debugf("use meta cache when list archive [%s]%s", path, args.InnerPath)
-			return getChildrenFromArchiveMeta(meta, args.InnerPath)
-		}
+		// if meta, ok := archiveMetaCache.Get(metaKey); ok {
+		// 	log.Debugf("use meta cache when list archive [%s]%s", path, args.InnerPath)
+		// 	return getChildrenFromArchiveMeta(meta, args.InnerPath)
+		// }
 	}
 	objs, err, _ := archiveListG.Do(key, func() ([]model.Obj, error) {
 		obj, files, err := listArchive(ctx, storage, path, args)
@@ -165,13 +251,17 @@ func _listArchive(ctx context.Context, storage driver.Driver, path string, args 
 			return obj, files, err
 		}
 	}
-	obj, t, ss, err := getArchiveToolAndStream(ctx, storage, path, args.LinkArgs)
+	obj, t, ss, err := GetArchiveToolAndStream(ctx, storage, path, args.LinkArgs)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer func() {
-		if err := ss.Close(); err != nil {
-			log.Errorf("failed to close file streamer, %v", err)
+		var e error
+		for _, s := range ss {
+			e = stderrors.Join(e, s.Close())
+		}
+		if e != nil {
+			log.Errorf("failed to close file streamer, %v", e)
 		}
 	}()
 	files, err := t.List(ss, args.ArchiveInnerArgs)
@@ -355,8 +445,8 @@ func driverExtract(ctx context.Context, storage driver.Driver, path string, args
 }
 
 type streamWithParent struct {
-	rc     io.ReadCloser
-	parent *stream.SeekableStream
+	rc      io.ReadCloser
+	parents []*stream.SeekableStream
 }
 
 func (s *streamWithParent) Read(p []byte) (int, error) {
@@ -364,24 +454,31 @@ func (s *streamWithParent) Read(p []byte) (int, error) {
 }
 
 func (s *streamWithParent) Close() error {
-	err1 := s.rc.Close()
-	err2 := s.parent.Close()
-	return stderrors.Join(err1, err2)
+	err := s.rc.Close()
+	for _, ss := range s.parents {
+		err = stderrors.Join(err, ss.Close())
+	}
+	return err
 }
 
 func InternalExtract(ctx context.Context, storage driver.Driver, path string, args model.ArchiveInnerArgs) (io.ReadCloser, int64, error) {
-	_, t, ss, err := getArchiveToolAndStream(ctx, storage, path, args.LinkArgs)
+	_, t, ss, err := GetArchiveToolAndStream(ctx, storage, path, args.LinkArgs)
 	if err != nil {
 		return nil, 0, err
 	}
 	rc, size, err := t.Extract(ss, args)
 	if err != nil {
-		if e := ss.Close(); e != nil {
+		var e error
+		for _, s := range ss {
+			e = stderrors.Join(e, s.Close())
+		}
+		if e != nil {
 			log.Errorf("failed to close file streamer, %v", e)
+			err = stderrors.Join(err, e)
 		}
 		return nil, 0, err
 	}
-	return &streamWithParent{rc: rc, parent: ss}, size, nil
+	return &streamWithParent{rc: rc, parents: ss}, size, nil
 }
 
 func ArchiveDecompress(ctx context.Context, storage driver.Driver, srcPath, dstDirPath string, args model.ArchiveDecompressArgs, lazyCache ...bool) error {

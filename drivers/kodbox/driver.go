@@ -8,11 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/coordinate/alist/pkg/utils"
-	"github.com/go-resty/resty/v2"
-
 	"github.com/coordinate/alist/internal/driver"
 	"github.com/coordinate/alist/internal/model"
+	"github.com/coordinate/alist/pkg/utils"
+	"github.com/go-resty/resty/v2"
 )
 
 type KodBox struct {
@@ -226,14 +225,19 @@ func (d *KodBox) Remove(ctx context.Context, obj model.Obj) error {
 	return nil
 }
 
-func (d *KodBox) Put(ctx context.Context, dstDir model.Obj, stream model.FileStreamer, up driver.UpdateProgress) (model.Obj, error) {
+func (d *KodBox) Put(ctx context.Context, dstDir model.Obj, s model.FileStreamer, up driver.UpdateProgress) (model.Obj, error) {
 	var resp *CommonResp
 	_, err := d.request(http.MethodPost, "/?explorer/upload/fileUpload", func(req *resty.Request) {
-		req.SetFileReader("file", stream.GetName(), stream).
+		r := driver.NewLimitedUploadStream(ctx, &driver.ReaderUpdatingProgress{
+			Reader:         s,
+			UpdateProgress: up,
+		})
+		req.SetFileReader("file", s.GetName(), r).
 			SetResult(&resp).
 			SetFormData(map[string]string{
 				"path": dstDir.GetPath(),
-			})
+			}).
+			SetContext(ctx)
 	})
 	if err != nil {
 		return nil, err
@@ -245,8 +249,8 @@ func (d *KodBox) Put(ctx context.Context, dstDir model.Obj, stream model.FileStr
 	return &model.ObjThumb{
 		Object: model.Object{
 			Path:     resp.Info.(string),
-			Name:     stream.GetName(),
-			Size:     stream.GetSize(),
+			Name:     s.GetName(),
+			Size:     s.GetSize(),
 			IsFolder: false,
 			Modified: time.Now(),
 			Ctime:    time.Now(),

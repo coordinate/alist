@@ -2,6 +2,7 @@ package bootstrap
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/coordinate/alist/internal/bootstrap/patch"
 	"github.com/coordinate/alist/internal/conf"
@@ -39,7 +40,12 @@ func compareVersion(majorA, minorA, patchNumA, majorB, minorB, patchNumB int) bo
 }
 
 func InitUpgradePatch() {
-	if conf.Version == "dev" {
+	if !strings.HasPrefix(conf.Version, "v") {
+		for _, vp := range patch.UpgradePatches {
+			for i, p := range vp.Patches {
+				safeCall(vp.Version, i, p)
+			}
+		}
 		return
 	}
 	if LastLaunchedVersion == conf.Version {

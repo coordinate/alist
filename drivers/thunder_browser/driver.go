@@ -16,6 +16,7 @@ import (
 	"github.com/coordinate/alist/internal/driver"
 	"github.com/coordinate/alist/internal/model"
 	"github.com/coordinate/alist/internal/op"
+	streamPkg "github.com/coordinate/alist/internal/stream"
 	"github.com/coordinate/alist/pkg/utils"
 	hash_extend "github.com/coordinate/alist/pkg/utils/hash"
 	"github.com/go-resty/resty/v2"
@@ -457,15 +458,10 @@ func (xc *XunLeiBrowserCommon) Remove(ctx context.Context, obj model.Obj) error 
 }
 
 func (xc *XunLeiBrowserCommon) Put(ctx context.Context, dstDir model.Obj, stream model.FileStreamer, up driver.UpdateProgress) error {
-	hi := stream.GetHash()
-	gcid := hi.GetHash(hash_extend.GCID)
+	gcid := stream.GetHash().GetHash(hash_extend.GCID)
+	var err error
 	if len(gcid) < hash_extend.GCID.Width {
-		tFile, err := stream.CacheFullInTempFile()
-		if err != nil {
-			return err
-		}
-
-		gcid, err = utils.HashFile(hash_extend.GCID, tFile, stream.GetSize())
+		_, gcid, err = streamPkg.CacheFullInTempFileAndHash(stream, hash_extend.GCID, stream.GetSize())
 		if err != nil {
 			return err
 		}
@@ -482,7 +478,7 @@ func (xc *XunLeiBrowserCommon) Put(ctx context.Context, dstDir model.Obj, stream
 	}
 
 	var resp UploadTaskResponse
-	_, err := xc.Request(FILE_API_URL, http.MethodPost, func(r *resty.Request) {
+	_, err = xc.Request(FILE_API_URL, http.MethodPost, func(r *resty.Request) {
 		r.SetContext(ctx)
 		r.SetBody(&js)
 	}, &resp)
@@ -509,7 +505,7 @@ func (xc *XunLeiBrowserCommon) Put(ctx context.Context, dstDir model.Obj, stream
 			Bucket:  aws.String(param.Bucket),
 			Key:     aws.String(param.Key),
 			Expires: aws.Time(param.Expiration),
-			Body:    io.TeeReader(stream, driver.NewProgress(stream.GetSize(), up)),
+			Body:    driver.NewLimitedUploadStream(ctx, io.TeeReader(stream, driver.NewProgress(stream.GetSize(), up))),
 		})
 		return err
 	}

@@ -1,43 +1,58 @@
 package archives
 
 import (
-	"github.com/coordinate/alist/internal/archive/tool"
-	"github.com/coordinate/alist/internal/model"
-	"github.com/coordinate/alist/internal/stream"
-	"github.com/coordinate/alist/pkg/utils"
 	"io"
 	"io/fs"
 	"os"
 	stdpath "path"
 	"strings"
+
+	"github.com/coordinate/alist/internal/archive/tool"
+	"github.com/coordinate/alist/internal/model"
+	"github.com/coordinate/alist/internal/stream"
+	"github.com/coordinate/alist/pkg/utils"
 )
 
 type Archives struct {
 }
 
-func (_ *Archives) AcceptedExtensions() []string {
+func (Archives) AcceptedExtensions() []string {
 	return []string{
-		".br", ".bz2", ".gz", ".lz4", ".lz", ".sz", ".s2", ".xz", ".zz", ".zst", ".tar", ".rar", ".7z",
+		".br", ".bz2", ".gz", ".lz4", ".lz", ".sz", ".s2", ".xz", ".zz", ".zst", ".tar",
 	}
 }
 
-func (_ *Archives) GetMeta(ss *stream.SeekableStream, args model.ArchiveArgs) (model.ArchiveMeta, error) {
-	fsys, err := getFs(ss, args)
+func (Archives) AcceptedMultipartExtensions() map[string]tool.MultipartExtension {
+	return map[string]tool.MultipartExtension{}
+}
+
+func (Archives) GetMeta(ss []*stream.SeekableStream, args model.ArchiveArgs) (model.ArchiveMeta, error) {
+	fsys, err := getFs(ss[0], args)
 	if err != nil {
 		return nil, err
 	}
-	_, err = fsys.ReadDir(".")
+	files, err := fsys.ReadDir(".")
 	if err != nil {
 		return nil, filterPassword(err)
+	}
+
+	tree := make([]model.ObjTree, 0, len(files))
+	for _, file := range files {
+		info, err := file.Info()
+		if err != nil {
+			continue
+		}
+		tree = append(tree, &model.ObjectTree{Object: *toModelObj(info)})
 	}
 	return &model.ArchiveMetaInfo{
 		Comment:   "",
 		Encrypted: false,
+		Tree:      tree,
 	}, nil
 }
 
-func (_ *Archives) List(ss *stream.SeekableStream, args model.ArchiveInnerArgs) ([]model.Obj, error) {
-	fsys, err := getFs(ss, args.ArchiveArgs)
+func (Archives) List(ss []*stream.SeekableStream, args model.ArchiveInnerArgs) ([]model.Obj, error) {
+	fsys, err := getFs(ss[0], args.ArchiveArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -58,8 +73,8 @@ func (_ *Archives) List(ss *stream.SeekableStream, args model.ArchiveInnerArgs) 
 	})
 }
 
-func (_ *Archives) Extract(ss *stream.SeekableStream, args model.ArchiveInnerArgs) (io.ReadCloser, int64, error) {
-	fsys, err := getFs(ss, args.ArchiveArgs)
+func (Archives) Extract(ss []*stream.SeekableStream, args model.ArchiveInnerArgs) (io.ReadCloser, int64, error) {
+	fsys, err := getFs(ss[0], args.ArchiveArgs)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -74,8 +89,8 @@ func (_ *Archives) Extract(ss *stream.SeekableStream, args model.ArchiveInnerArg
 	return file, stat.Size(), nil
 }
 
-func (_ *Archives) Decompress(ss *stream.SeekableStream, outputPath string, args model.ArchiveInnerArgs, up model.UpdateProgress) error {
-	fsys, err := getFs(ss, args.ArchiveArgs)
+func (Archives) Decompress(ss []*stream.SeekableStream, outputPath string, args model.ArchiveInnerArgs, up model.UpdateProgress) error {
+	fsys, err := getFs(ss[0], args.ArchiveArgs)
 	if err != nil {
 		return err
 	}
@@ -122,5 +137,5 @@ func (_ *Archives) Decompress(ss *stream.SeekableStream, outputPath string, args
 var _ tool.Tool = (*Archives)(nil)
 
 func init() {
-	tool.RegisterTool(&Archives{})
+	tool.RegisterTool(Archives{})
 }

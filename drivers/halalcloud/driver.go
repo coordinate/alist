@@ -22,7 +22,6 @@ import (
 	"github.com/coordinate/alist/internal/model"
 	"github.com/coordinate/alist/internal/op"
 	"github.com/coordinate/alist/pkg/http_range"
-	"github.com/coordinate/alist/pkg/utils"
 	"github.com/rclone/rclone/lib/readers"
 	"github.com/zzzhr1990/go-common-entity/userfile"
 )
@@ -252,7 +251,6 @@ func (d *HalalCloud) getLink(ctx context.Context, file model.Obj, args model.Lin
 
 	size := result.FileSize
 	chunks := getChunkSizes(result.Sizes)
-	var finalClosers utils.Closers
 	resultRangeReader := func(ctx context.Context, httpRange http_range.Range) (io.ReadCloser, error) {
 		length := httpRange.Length
 		if httpRange.Length >= 0 && httpRange.Start+httpRange.Length >= size {
@@ -270,7 +268,6 @@ func (d *HalalCloud) getLink(ctx context.Context, file model.Obj, args model.Lin
 			sha:     result.Sha1,
 			shaTemp: sha1.New(),
 		}
-		finalClosers.Add(oo)
 
 		return readers.NewLimitedReadCloser(oo, length), nil
 	}
@@ -282,7 +279,7 @@ func (d *HalalCloud) getLink(ctx context.Context, file model.Obj, args model.Lin
 		duration = time.Until(time.Now().Add(time.Hour))
 	}
 
-	resultRangeReadCloser := &model.RangeReadCloser{RangeReader: resultRangeReader, Closers: finalClosers}
+	resultRangeReadCloser := &model.RangeReadCloser{RangeReader: resultRangeReader}
 	return &model.Link{
 		RangeReadCloser: resultRangeReadCloser,
 		Expiration:      &duration,
@@ -395,10 +392,11 @@ func (d *HalalCloud) put(ctx context.Context, dstDir model.Obj, fileStream model
 	if fileStream.GetSize() > s3manager.MaxUploadParts*s3manager.DefaultUploadPartSize {
 		uploader.PartSize = fileStream.GetSize() / (s3manager.MaxUploadParts - 1)
 	}
+	reader := driver.NewLimitedUploadStream(ctx, fileStream)
 	_, err = uploader.UploadWithContext(ctx, &s3manager.UploadInput{
 		Bucket: aws.String(result.Bucket),
 		Key:    aws.String(result.Key),
-		Body:   io.TeeReader(fileStream, driver.NewProgress(fileStream.GetSize(), up)),
+		Body:   io.TeeReader(reader, driver.NewProgress(fileStream.GetSize(), up)),
 	})
 	return nil, err
 

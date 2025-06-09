@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/coordinate/alist/internal/driver"
 	"github.com/coordinate/alist/internal/model"
 	"github.com/coordinate/alist/internal/sign"
 	"github.com/coordinate/alist/pkg/http_range"
@@ -27,8 +28,8 @@ type SongResp struct {
 }
 
 type ListResp struct {
-	Size    string `json:"size"`
-	MaxSize string `json:"maxSize"`
+	Size    int64 `json:"size"`
+	MaxSize int64 `json:"maxSize"`
 	Data    []struct {
 		AddTime    int64  `json:"addTime"`
 		FileName   string `json:"fileName"`
@@ -64,7 +65,6 @@ func (lrc *LyricObj) getLyricLink() *model.Link {
 				sr := io.NewSectionReader(reader, httpRange.Start, httpRange.Length)
 				return io.NopCloser(sr), nil
 			},
-			Closers: utils.EmptyClosers(),
 		},
 	}
 }
@@ -72,6 +72,8 @@ func (lrc *LyricObj) getLyricLink() *model.Link {
 type ReqOption struct {
 	crypto  string
 	stream  model.FileStreamer
+	up      driver.UpdateProgress
+	ctx     context.Context
 	data    map[string]string
 	headers map[string]string
 	cookies []*http.Cookie

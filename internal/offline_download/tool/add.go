@@ -3,21 +3,24 @@ package tool
 import (
 	"context"
 	"net/url"
-	"path"
+	stdpath "path"
 	"path/filepath"
 
 	_115 "github.com/coordinate/alist/drivers/115"
 	"github.com/coordinate/alist/drivers/pikpak"
 	"github.com/coordinate/alist/drivers/thunder"
 	"github.com/coordinate/alist/internal/conf"
-	"github.com/coordinate/alist/internal/driver"
 	"github.com/coordinate/alist/internal/errs"
+	"github.com/coordinate/alist/internal/fs"
 	"github.com/coordinate/alist/internal/model"
 	"github.com/coordinate/alist/internal/op"
 	"github.com/coordinate/alist/internal/setting"
 	"github.com/coordinate/alist/internal/task"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
+
+
+
 )
 
 type DeletePolicy string
@@ -59,8 +62,11 @@ func AddURL(ctx context.Context, args *AddURLArgs) (task.TaskExtensionInfo, erro
 		}
 	}
 	// try putting url
-	if args.Tool == "SimpleHttp" && tryPutUrl(ctx, storage, dstDirActualPath, args.URL) {
-		return nil, nil
+	if args.Tool == "SimpleHttp" {
+		err = tryPutUrl(ctx, args.DstDirPath, args.URL)
+		if err == nil || !errors.Is(err, errs.NotImplement) {
+			return nil, err
+		}
 	}
 
 	// get tool
@@ -118,17 +124,13 @@ func AddURL(ctx context.Context, args *AddURLArgs) (task.TaskExtensionInfo, erro
 	return t, nil
 }
 
-func tryPutUrl(ctx context.Context, storage driver.Driver, dstDirActualPath, urlStr string) bool {
-	_, ok := storage.(driver.PutURL)
-	_, okResult := storage.(driver.PutURLResult)
-	if !ok && !okResult {
-		return false
-	}
+func tryPutUrl(ctx context.Context, path, urlStr string) error {
+	var dstName string
 	u, err := url.Parse(urlStr)
-	if err != nil {
-		return false
+	if err == nil {
+		dstName = stdpath.Base(u.Path)
+	} else {
+		dstName = "UnnamedURL"
 	}
-	dstName := path.Base(u.Path)
-	err = op.PutURL(ctx, storage, dstDirActualPath, dstName, urlStr)
-	return err == nil
+	return fs.PutURL(ctx, path, dstName, urlStr)
 }

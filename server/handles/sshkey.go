@@ -1,12 +1,12 @@
 package handles
 
 import (
-	"strconv"
-
 	"github.com/coordinate/alist/internal/model"
 	"github.com/coordinate/alist/internal/op"
 	"github.com/coordinate/alist/server/common"
 	"github.com/gin-gonic/gin"
+	"strconv"
+	"strings"
 )
 
 type SSHKeyAddReq struct {
@@ -31,7 +31,7 @@ func AddMyPublicKey(c *gin.Context) {
 	}
 	key := &model.SSHPublicKey{
 		Title:  req.Title,
-		KeyStr: req.Key,
+		KeyStr: strings.TrimSpace(req.Key),
 		UserId: userObj.ID,
 	}
 	err, parsed := op.CreateSSHPublicKey(key)

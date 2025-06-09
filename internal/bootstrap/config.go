@@ -10,6 +10,7 @@ import (
 	"github.com/coordinate/alist/cmd/flags"
 	"github.com/coordinate/alist/drivers/base"
 	"github.com/coordinate/alist/internal/conf"
+	"github.com/coordinate/alist/internal/net"
 	"github.com/coordinate/alist/pkg/utils"
 	log "github.com/sirupsen/logrus"
 )
@@ -50,7 +51,7 @@ func InitConfig() {
 			log.Fatalf("load config error: %+v", err)
 		}
 		LastLaunchedVersion = conf.Conf.LastLaunchedVersion
-		if conf.Version != "dev" || LastLaunchedVersion == "" {
+		if strings.HasPrefix(conf.Version, "v") || LastLaunchedVersion == "" {
 			conf.Conf.LastLaunchedVersion = conf.Version
 		}
 		// update config.json struct
@@ -62,6 +63,9 @@ func InitConfig() {
 		if err != nil {
 			log.Fatalf("update config struct error: %+v", err)
 		}
+	}
+	if conf.Conf.MaxConcurrency > 0 {
+		net.DefaultConcurrencyLimit = &net.ConcurrencyLimit{Limit: conf.Conf.MaxConcurrency}
 	}
 	if !conf.Conf.Force {
 		confFromEnv()

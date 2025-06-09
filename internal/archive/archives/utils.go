@@ -1,21 +1,26 @@
 package archives
 
 import (
-	"github.com/coordinate/alist/internal/errs"
-	"github.com/coordinate/alist/internal/model"
-	"github.com/coordinate/alist/internal/stream"
-	"github.com/mholt/archives"
 	"io"
 	fs2 "io/fs"
 	"os"
 	stdpath "path"
 	"strings"
+
+	"github.com/coordinate/alist/internal/errs"
+	"github.com/coordinate/alist/internal/model"
+	"github.com/coordinate/alist/internal/stream"
+	"github.com/coordinate/alist/pkg/utils"
+	"github.com/mholt/archives"
 )
 
 func getFs(ss *stream.SeekableStream, args model.ArchiveArgs) (*archives.ArchiveFS, error) {
 	reader, err := stream.NewReadAtSeeker(ss, 0)
 	if err != nil {
 		return nil, err
+	}
+	if r, ok := reader.(*stream.RangeReadReadAtSeeker); ok {
+		r.InitHeadCache()
 	}
 	format, _, err := archives.Identify(ss.Ctx, ss.GetName(), reader)
 	if err != nil {
@@ -69,7 +74,7 @@ func decompress(fsys fs2.FS, filePath, targetPath string, up model.UpdateProgres
 		return err
 	}
 	defer f.Close()
-	_, err = io.Copy(f, &stream.ReaderUpdatingProgress{
+	_, err = utils.CopyWithBuffer(f, &stream.ReaderUpdatingProgress{
 		Reader: &stream.SimpleReaderWithSize{
 			Reader: rc,
 			Size:   stat.Size(),

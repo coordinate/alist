@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"path"
 	"sort"
 	"strconv"
 	"strings"
@@ -54,17 +55,38 @@ func getTime(t string) time.Time {
 }
 
 func (d *Yun139) refreshToken() error {
-	if d.ref == nil {
+	if d.ref != nil {
 		return d.ref.refreshToken()
 	}
-	url := "https://aas.caiyun.feixin.10086.cn:443/tellin/authTokenRefresh.do"
-	var resp RefreshTokenResp
 	decode, err := base64.StdEncoding.DecodeString(d.Authorization)
 	if err != nil {
-		return err
+		return fmt.Errorf("authorization decode failed: %s", err)
 	}
 	decodeStr := string(decode)
 	splits := strings.Split(decodeStr, ":")
+	if len(splits) < 3 {
+		return fmt.Errorf("authorization is invalid, splits < 3")
+	}
+	d.Account = splits[1]
+	strs := strings.Split(splits[2], "|")
+	if len(strs) < 4 {
+		return fmt.Errorf("authorization is invalid, strs < 4")
+	}
+	expiration, err := strconv.ParseInt(strs[3], 10, 64)
+	if err != nil {
+		return fmt.Errorf("authorization is invalid")
+	}
+	expiration -= time.Now().UnixMilli()
+	if expiration > 1000*60*60*24*15 {
+		// Authorization有效期大于15天无需刷新
+		return nil
+	}
+	if expiration < 0 {
+		return fmt.Errorf("authorization has expired")
+	}
+
+	url := "https://aas.caiyun.feixin.10086.cn:443/tellin/authTokenRefresh.do"
+	var resp RefreshTokenResp
 	reqBody := "<root><token>" + splits[2] + "</token><account>" + splits[1] + "</account><clienttype>656</clienttype></root>"
 	_, err = base.RestyClient.R().
 		ForceContentType("application/xml").
@@ -108,15 +130,16 @@ func (d *Yun139) request(pathname string, method string, callback base.ReqCallba
 		//"mcloud-route": "001",
 		"mcloud-sign": fmt.Sprintf("%s,%s,%s", ts, randStr, sign),
 		//"mcloud-skey":"",
-		"mcloud-version":      "6.6.0",
-		"Origin":              "https://yun.139.com",
-		"Referer":             "https://yun.139.com/w/",
-		"x-DeviceInfo":        "||9|6.6.0|chrome|95.0.4638.69|uwIy75obnsRPIwlJSd7D9GhUvFwG96ce||macos 10.15.2||zh-CN|||",
-		"x-huawei-channelSrc": "10000034",
-		"x-inner-ntwk":        "2",
-		"x-m4c-caller":        "PC",
-		"x-m4c-src":           "10002",
-		"x-SvcType":           svcType,
+		"mcloud-version":         "7.14.0",
+		"Origin":                 "https://yun.139.com",
+		"Referer":                "https://yun.139.com/w/",
+		"x-DeviceInfo":           "||9|7.14.0|chrome|120.0.0.0|||windows 10||zh-CN|||",
+		"x-huawei-channelSrc":    "10000034",
+		"x-inner-ntwk":           "2",
+		"x-m4c-caller":           "PC",
+		"x-m4c-src":              "10002",
+		"x-SvcType":              svcType,
+		"Inner-Hcy-Router-Https": "1",
 	})
 
 	var e BaseResp
@@ -134,6 +157,64 @@ func (d *Yun139) request(pathname string, method string, callback base.ReqCallba
 	}
 	return res.Body(), nil
 }
+
+func (d *Yun139) requestRoute(data interface{}, resp interface{}) ([]byte, error) {
+	url := "https://user-njs.yun.139.com/user/route/qryRoutePolicy"
+	req := base.RestyClient.R()
+	randStr := random.String(16)
+	ts := time.Now().Format("2006-01-02 15:04:05")
+	callback := func(req *resty.Request) {
+		req.SetBody(data)
+	}
+	if callback != nil {
+		callback(req)
+	}
+	body, err := utils.Json.Marshal(req.Body)
+	if err != nil {
+		return nil, err
+	}
+	sign := calSign(string(body), ts, randStr)
+	svcType := "1"
+	if d.isFamily() {
+		svcType = "2"
+	}
+	req.SetHeaders(map[string]string{
+		"Accept":         "application/json, text/plain, */*",
+		"CMS-DEVICE":     "default",
+		"Authorization":  "Basic " + d.getAuthorization(),
+		"mcloud-channel": "1000101",
+		"mcloud-client":  "10701",
+		//"mcloud-route": "001",
+		"mcloud-sign": fmt.Sprintf("%s,%s,%s", ts, randStr, sign),
+		//"mcloud-skey":"",
+		"mcloud-version":         "7.14.0",
+		"Origin":                 "https://yun.139.com",
+		"Referer":                "https://yun.139.com/w/",
+		"x-DeviceInfo":           "||9|7.14.0|chrome|120.0.0.0|||windows 10||zh-CN|||",
+		"x-huawei-channelSrc":    "10000034",
+		"x-inner-ntwk":           "2",
+		"x-m4c-caller":           "PC",
+		"x-m4c-src":              "10002",
+		"x-SvcType":              svcType,
+		"Inner-Hcy-Router-Https": "1",
+	})
+
+	var e BaseResp
+	req.SetResult(&e)
+	res, err := req.Execute(http.MethodPost, url)
+	log.Debugln(res.String())
+	if !e.Success {
+		return nil, errors.New(e.Message)
+	}
+	if resp != nil {
+		err = utils.Json.Unmarshal(res.Body(), resp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res.Body(), nil
+}
+
 func (d *Yun139) post(pathname string, data interface{}, resp interface{}) ([]byte, error) {
 	return d.request(pathname, http.MethodPost, func(req *resty.Request) {
 		req.SetBody(data)
@@ -269,12 +350,12 @@ func (d *Yun139) groupGetFiles(catalogID string) ([]model.Obj, error) {
 	for {
 		data := d.newJson(base.Json{
 			"groupID":         d.CloudID,
-			"catalogID":       catalogID,
+			"catalogID":       path.Base(catalogID),
 			"contentSortType": 0,
 			"sortDirection":   1,
 			"startNumber":     pageNum,
 			"endNumber":       pageNum + 99,
-			"path":            catalogID,
+			"path":            path.Join(d.RootFolderID, catalogID),
 		})
 
 		var resp QueryGroupContentListResp
@@ -310,7 +391,7 @@ func (d *Yun139) groupGetFiles(catalogID string) ([]model.Obj, error) {
 			}
 			files = append(files, &f)
 		}
-		if pageNum > resp.Data.GetGroupContentResult.NodeCount {
+		if (pageNum + 99) > resp.Data.GetGroupContentResult.NodeCount {
 			break
 		}
 		pageNum = pageNum + 100
@@ -368,7 +449,7 @@ func unicode(str string) string {
 }
 
 func (d *Yun139) personalRequest(pathname string, method string, callback base.ReqCallback, resp interface{}) ([]byte, error) {
-	url := "https://personal-kd-njs.yun.139.com" + pathname
+	url := d.getPersonalCloudHost() + pathname
 	req := base.RestyClient.R()
 	randStr := random.String(16)
 	ts := time.Now().Format("2006-01-02 15:04:05")
@@ -393,10 +474,8 @@ func (d *Yun139) personalRequest(pathname string, method string, callback base.R
 		"Mcloud-Client":        "10701",
 		"Mcloud-Route":         "001",
 		"Mcloud-Sign":          fmt.Sprintf("%s,%s,%s", ts, randStr, sign),
-		"Mcloud-Version":       "7.13.0",
-		"Origin":               "https://yun.139.com",
-		"Referer":              "https://yun.139.com/w/",
-		"x-DeviceInfo":         "||9|7.13.0|chrome|120.0.0.0|||windows 10||zh-CN|||",
+		"Mcloud-Version":       "7.14.0",
+		"x-DeviceInfo":         "||9|7.14.0|chrome|120.0.0.0|||windows 10||zh-CN|||",
 		"x-huawei-channelSrc":  "10000034",
 		"x-inner-ntwk":         "2",
 		"x-m4c-caller":         "PC",
@@ -405,7 +484,7 @@ func (d *Yun139) personalRequest(pathname string, method string, callback base.R
 		"X-Yun-Api-Version":    "v1",
 		"X-Yun-App-Channel":    "10000034",
 		"X-Yun-Channel-Source": "10000034",
-		"X-Yun-Client-Info":    "||9|7.13.0|chrome|120.0.0.0|||windows 10||zh-CN|||dW5kZWZpbmVk||",
+		"X-Yun-Client-Info":    "||9|7.14.0|chrome|120.0.0.0|||windows 10||zh-CN|||dW5kZWZpbmVk||",
 		"X-Yun-Module-Type":    "100",
 		"X-Yun-Svc-Type":       "1",
 	})
@@ -457,7 +536,7 @@ func (d *Yun139) personalGetFiles(fileId string) ([]model.Obj, error) {
 			"parentFileId": fileId,
 		}
 		var resp PersonalListResp
-		_, err := d.personalPost("/hcy/file/list", data, &resp)
+		_, err := d.personalPost("/file/list", data, &resp)
 		if err != nil {
 			return nil, err
 		}
@@ -477,7 +556,15 @@ func (d *Yun139) personalGetFiles(fileId string) ([]model.Obj, error) {
 			} else {
 				var Thumbnails = item.Thumbnails
 				var ThumbnailUrl string
-				if len(Thumbnails) > 0 {
+				if d.UseLargeThumbnail {
+					for _, thumb := range Thumbnails {
+						if strings.Contains(thumb.Style, "Large") {
+							ThumbnailUrl = thumb.Url
+							break
+						}
+					}
+				}
+				if ThumbnailUrl == "" && len(Thumbnails) > 0 {
 					ThumbnailUrl = Thumbnails[len(Thumbnails)-1].Url
 				}
 				f = &model.ObjThumb{
@@ -505,7 +592,7 @@ func (d *Yun139) personalGetLink(fileId string) (string, error) {
 	data := base.Json{
 		"fileId": fileId,
 	}
-	res, err := d.personalPost("/hcy/file/getDownloadUrl",
+	res, err := d.personalPost("/file/getDownloadUrl",
 		data, nil)
 	if err != nil {
 		return "", err
@@ -529,4 +616,10 @@ func (d *Yun139) getAccount() string {
 		return d.ref.getAccount()
 	}
 	return d.Account
+}
+func (d *Yun139) getPersonalCloudHost() string {
+	if d.ref != nil {
+		return d.ref.getPersonalCloudHost()
+	}
+	return d.PersonalCloudHost
 }

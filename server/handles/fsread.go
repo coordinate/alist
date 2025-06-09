@@ -34,6 +34,8 @@ type DirReq struct {
 }
 
 type ObjResp struct {
+	Id          string                     `json:"id"`
+	Path        string                     `json:"path"`
 	Name        string                     `json:"name"`
 	Size        int64                      `json:"size"`
 	IsDir       bool                       `json:"is_dir"`
@@ -211,6 +213,8 @@ func toObjsResp(objs []model.Obj, parent string, encrypt bool) []ObjResp {
 	for _, obj := range objs {
 		thumb, _ := model.GetThumb(obj)
 		resp = append(resp, ObjResp{
+			Id:          obj.GetID(),
+			Path:        obj.GetPath(),
 			Name:        obj.GetName(),
 			Size:        obj.GetSize(),
 			IsDir:       obj.IsDir(),
@@ -304,9 +308,10 @@ func FsGet(c *gin.Context) {
 			} else {
 				// if storage is not proxy, use raw url by fs.Link
 				link, _, err := fs.Link(c, reqPath, model.LinkArgs{
-					IP:      c.ClientIP(),
-					Header:  c.Request.Header,
-					HttpReq: c.Request,
+					IP:       c.ClientIP(),
+					Header:   c.Request.Header,
+					HttpReq:  c.Request,
+					Redirect: true,
 				})
 				if err != nil {
 					common.ErrorResp(c, err, 500)
@@ -330,6 +335,8 @@ func FsGet(c *gin.Context) {
 	thumb, _ := model.GetThumb(obj)
 	common.SuccessResp(c, FsGetResp{
 		ObjResp: ObjResp{
+			Id:          obj.GetID(),
+			Path:        obj.GetPath(),
 			Name:        obj.GetName(),
 			Size:        obj.GetSize(),
 			IsDir:       obj.IsDir(),

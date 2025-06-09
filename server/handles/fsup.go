@@ -7,13 +7,15 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/coordinate/alist/internal/task"
-
 	"github.com/coordinate/alist/internal/fs"
 	"github.com/coordinate/alist/internal/model"
 	"github.com/coordinate/alist/internal/stream"
+	"github.com/coordinate/alist/internal/task"
+	"github.com/coordinate/alist/pkg/utils"
 	"github.com/coordinate/alist/server/common"
 	"github.com/gin-gonic/gin"
+
+
 )
 
 func getLastModified(c *gin.Context) time.Time {
@@ -44,7 +46,7 @@ func FsStream(c *gin.Context) {
 	}
 	if !overwrite {
 		if res, _ := fs.Get(c, path, &fs.GetArgs{NoLog: true}); res != nil {
-			_, _ = io.Copy(io.Discard, c.Request.Body)
+			_, _ = utils.CopyWithBuffer(io.Discard, c.Request.Body)
 			common.ErrorStrResp(c, "file exists", 403)
 			return
 		}
@@ -56,14 +58,29 @@ func FsStream(c *gin.Context) {
 		common.ErrorResp(c, err, 400)
 		return
 	}
+	h := make(map[*utils.HashType]string)
+	if md5 := c.GetHeader("X-File-Md5"); md5 != "" {
+		h[utils.MD5] = md5
+	}
+	if sha1 := c.GetHeader("X-File-Sha1"); sha1 != "" {
+		h[utils.SHA1] = sha1
+	}
+	if sha256 := c.GetHeader("X-File-Sha256"); sha256 != "" {
+		h[utils.SHA256] = sha256
+	}
+	mimetype := c.GetHeader("Content-Type")
+	if len(mimetype) == 0 {
+		mimetype = utils.GetMimeType(name)
+	}
 	s := &stream.FileStream{
 		Obj: &model.Object{
 			Name:     name,
 			Size:     size,
 			Modified: getLastModified(c),
+			HashInfo: utils.NewHashInfoByMap(h),
 		},
 		Reader:       c.Request.Body,
-		Mimetype:     c.GetHeader("Content-Type"),
+		Mimetype:     mimetype,
 		WebPutAsTask: asTask,
 	}
 	var t task.TaskExtensionInfo
@@ -78,6 +95,9 @@ func FsStream(c *gin.Context) {
 		return
 	}
 	if t == nil {
+		if n, _ := io.ReadFull(c.Request.Body, []byte{0}); n == 1 {
+			_, _ = utils.CopyWithBuffer(io.Discard, c.Request.Body)
+		}
 		common.SuccessResp(c)
 		return
 	}
@@ -103,7 +123,7 @@ func FsForm(c *gin.Context) {
 	}
 	if !overwrite {
 		if res, _ := fs.Get(c, path, &fs.GetArgs{NoLog: true}); res != nil {
-			_, _ = io.Copy(io.Discard, c.Request.Body)
+			_, _ = utils.CopyWithBuffer(io.Discard, c.Request.Body)
 			common.ErrorStrResp(c, "file exists", 403)
 			return
 		}
@@ -129,14 +149,29 @@ func FsForm(c *gin.Context) {
 	}
 	defer f.Close()
 	dir, name := stdpath.Split(path)
+	h := make(map[*utils.HashType]string)
+	if md5 := c.GetHeader("X-File-Md5"); md5 != "" {
+		h[utils.MD5] = md5
+	}
+	if sha1 := c.GetHeader("X-File-Sha1"); sha1 != "" {
+		h[utils.SHA1] = sha1
+	}
+	if sha256 := c.GetHeader("X-File-Sha256"); sha256 != "" {
+		h[utils.SHA256] = sha256
+	}
+	mimetype := file.Header.Get("Content-Type")
+	if len(mimetype) == 0 {
+		mimetype = utils.GetMimeType(name)
+	}
 	s := stream.FileStream{
 		Obj: &model.Object{
 			Name:     name,
 			Size:     file.Size,
 			Modified: getLastModified(c),
+			HashInfo: utils.NewHashInfoByMap(h),
 		},
 		Reader:       f,
-		Mimetype:     file.Header.Get("Content-Type"),
+		Mimetype:     mimetype,
 		WebPutAsTask: asTask,
 	}
 	var t task.TaskExtensionInfo
@@ -146,12 +181,7 @@ func FsForm(c *gin.Context) {
 		}{f}
 		t, err = fs.PutAsTask(c, dir, &s)
 	} else {
-		ss, err := stream.NewSeekableStream(s, nil)
-		if err != nil {
-			common.ErrorResp(c, err, 500)
-			return
-		}
-		err = fs.PutDirectly(c, dir, ss, true)
+		err = fs.PutDirectly(c, dir, &s, true)
 	}
 	if err != nil {
 		common.ErrorResp(c, err, 500)
