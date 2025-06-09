@@ -9,23 +9,19 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Xhofe/go-cache"
 	"github.com/coordinate/alist/internal/archive/tool"
-	"github.com/coordinate/alist/internal/stream"
-	"github.com/coordinate/alist/internal/driver"	
+	"github.com/coordinate/alist/internal/driver"
 	"github.com/coordinate/alist/internal/errs"
-	"github.com/coordinate/alist/internal/model"	
+	"github.com/coordinate/alist/internal/model"
 	"github.com/coordinate/alist/internal/stream"
 	"github.com/coordinate/alist/pkg/singleflight"
 	"github.com/coordinate/alist/pkg/utils"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-
 )
 
-
-
-var archiveMetaCache = cache.NewM
-emCache(cache.WithShards[*model.ArchiveMetaProvider](64))
+var archiveMetaCache = cache.NewMemCache(cache.WithShards[*model.ArchiveMetaProvider](64))
 var archiveMetaG singleflight.Group[*model.ArchiveMetaProvider]
 
 func GetArchiveMeta(ctx context.Context, storage driver.Driver, path string, args model.ArchiveMetaArgs) (*model.ArchiveMetaProvider, error) {

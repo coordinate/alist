@@ -10,10 +10,6 @@ import (
 	"github.com/coordinate/alist/drivers/base"
 	"github.com/coordinate/alist/internal/op"
 	"github.com/go-resty/resty/v2"
-
-	"github.com/coordinate/alist/drivers/base"
-	"github.com/coordinate/alist/internal/op"
-	"github.com/go-resty/resty/v2"
 )
 
 func (d *FebBox) refreshTokenByOAuth2() error {

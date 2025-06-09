@@ -3,7 +3,8 @@ package doubao_share
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/alist-org/alist/v3/internal/model"
+
+	"github.com/coordinate/alist/internal/model"
 )
 
 type BaseResp struct {

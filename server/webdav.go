@@ -3,8 +3,8 @@ package server
 import (
 	"context"
 	"crypto/subtle"
-	"github.com/alist-org/alist/v3/internal/stream"
-	"github.com/alist-org/alist/v3/server/middlewares"
+	"github.com/coordinate/alist/internal/stream"
+	"github.com/coordinate/alist/server/middlewares"
 	"net/http"
 	"path"
 	"strings"

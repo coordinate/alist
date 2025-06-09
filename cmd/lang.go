@@ -12,14 +12,13 @@ import (
 	"strings"
 
 	_ "github.com/coordinate/alist/drivers"
-	"github.com/coordinate/alist/v3/internal/bootstrap"
+	"github.com/coordinate/alist/internal/bootstrap"
 	"github.com/coordinate/alist/internal/bootstrap/data"
 	"github.com/coordinate/alist/internal/conf"
 	"github.com/coordinate/alist/internal/op"
 	"github.com/coordinate/alist/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-
 )
 
 type KV[V any] map[string]V

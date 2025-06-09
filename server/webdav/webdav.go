@@ -16,14 +16,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/coordinate/alist/internal/stream"
 	"github.com/coordinate/alist/internal/errs"
 	"github.com/coordinate/alist/internal/fs"
 	"github.com/coordinate/alist/internal/model"
 	"github.com/coordinate/alist/internal/sign"
+	"github.com/coordinate/alist/internal/stream"
 	"github.com/coordinate/alist/pkg/utils"
 	"github.com/coordinate/alist/server/common"
-
+	"github.com/coordinate/alist/server/encrypt"
 )
 
 type Handler struct {

@@ -18,9 +18,7 @@ import (
 	"time"
 
 	"github.com/coordinate/alist/internal/model"
-	"github.com/coordinate/alist/internal/model"
 	"github.com/coordinate/alist/server/common"
-
 )
 
 // Proppatch describes a property update instruction as defined in RFC 4918.

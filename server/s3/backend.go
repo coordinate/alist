@@ -12,9 +12,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pkg/errors"
-	"github.com/pkg/errors"
-	"github.com/pkg/errors"
 	"github.com/alist-org/gofakes3"
 	"github.com/coordinate/alist/internal/errs"
 	"github.com/coordinate/alist/internal/fs"
@@ -24,8 +21,8 @@ import (
 	"github.com/coordinate/alist/pkg/http_range"
 	"github.com/coordinate/alist/pkg/utils"
 	"github.com/ncw/swift/v2"
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-
 )
 
 var (

@@ -3,7 +3,7 @@ package cloudreve_v4
 import (
 	"time"
 
-	"github.com/alist-org/alist/v3/internal/model"
+	"github.com/coordinate/alist/internal/model"
 )
 
 type Object struct {

@@ -4,11 +4,12 @@ import (
 	"context"
 	"crypto/md5"
 	"encoding/hex"
-	"github.com/alist-org/alist/v3/internal/driver"
 	"io"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/coordinate/alist/internal/driver"
 
 	"github.com/coordinate/alist/internal/model"
 	"github.com/coordinate/alist/pkg/utils"

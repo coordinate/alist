@@ -2,10 +2,10 @@ package bootstrap
 
 import (
 	"context"
-	"github.com/alist-org/alist/v3/internal/conf"
-	"github.com/alist-org/alist/v3/internal/op"
-	"github.com/alist-org/alist/v3/internal/setting"
-	"github.com/alist-org/alist/v3/internal/stream"
+	"github.com/coordinate/alist/internal/conf"
+	"github.com/coordinate/alist/internal/op"
+	"github.com/coordinate/alist/internal/setting"
+	"github.com/coordinate/alist/internal/stream"
 	"golang.org/x/time/rate"
 )
 

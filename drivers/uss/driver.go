@@ -3,11 +3,12 @@ package uss
 import (
 	"context"
 	"fmt"
-	"github.com/alist-org/alist/v3/internal/stream"
 	"net/url"
 	"path"
 	"strings"
 	"time"
+
+	"github.com/coordinate/alist/internal/stream"
 
 	"github.com/coordinate/alist/internal/driver"
 	"github.com/coordinate/alist/internal/model"

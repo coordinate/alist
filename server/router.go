@@ -1,6 +1,12 @@
 package server
 
 import (
+	"fmt"
+	"io"
+	"net/http"
+	"strconv"
+	"strings"
+
 	"github.com/coordinate/alist/cmd/flags"
 	"github.com/coordinate/alist/internal/conf"
 	"github.com/coordinate/alist/internal/message"
@@ -8,6 +14,7 @@ import (
 	"github.com/coordinate/alist/internal/stream"
 	"github.com/coordinate/alist/pkg/utils"
 	"github.com/coordinate/alist/server/common"
+	"github.com/coordinate/alist/server/encrypt"
 	"github.com/coordinate/alist/server/handles"
 	"github.com/coordinate/alist/server/middlewares"
 	"github.com/coordinate/alist/server/static"

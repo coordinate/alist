@@ -1,13 +1,11 @@
 package op
 
 import (
-	"github.com/coordinate/alist/internal/errs"
 	stdpath "path"
 	"strings"
 
-	"github.com/coordinate/alist/internal/errs"
-
 	"github.com/coordinate/alist/internal/driver"
+	"github.com/coordinate/alist/internal/errs"
 	"github.com/coordinate/alist/pkg/utils"
 	log "github.com/sirupsen/logrus"
 )
