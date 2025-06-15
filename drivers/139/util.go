@@ -77,29 +77,36 @@ func (d *Yun139) refreshToken() error {
 		return fmt.Errorf("authorization is invalid")
 	}
 	expiration -= time.Now().UnixMilli()
-	if expiration > 1000*60*60*24*15 {
-		// Authorization有效期大于15天无需刷新
-		return nil
-	}
+	// ****************************************************
 	if expiration < 0 {
-		return fmt.Errorf("authorization has expired")
+		url := "https://goalist-xmvwfiyuya.cn-hangzhou.fcapp.run/login/auth"
+		resp, err := base.RestyClient.R().
+			SetQueryParam("aid", "token139").
+			Get(url)
+		if err != nil {
+			return err
+		}
+		d.Authorization = resp.String()
+		// return fmt.Errorf("authorization has expired")
+	} else if expiration < 1000*60*60*24*15 {
+		// Authorization有效期大于15天无需刷新
+		url := "https://aas.caiyun.feixin.10086.cn:443/tellin/authTokenRefresh.do"
+		var resp RefreshTokenResp
+		reqBody := "<root><token>" + splits[2] + "</token><account>" + splits[1] + "</account><clienttype>656</clienttype></root>"
+		_, err = base.RestyClient.R().
+			ForceContentType("application/xml").
+			SetBody(reqBody).
+			SetResult(&resp).
+			Post(url)
+		if err != nil {
+			return err
+		}
+		if resp.Return != "0" {
+			return fmt.Errorf("failed to refresh token: %s", resp.Desc)
+		}
+		d.Authorization = base64.StdEncoding.EncodeToString([]byte(splits[0] + ":" + splits[1] + ":" + resp.Token))
 	}
-
-	url := "https://aas.caiyun.feixin.10086.cn:443/tellin/authTokenRefresh.do"
-	var resp RefreshTokenResp
-	reqBody := "<root><token>" + splits[2] + "</token><account>" + splits[1] + "</account><clienttype>656</clienttype></root>"
-	_, err = base.RestyClient.R().
-		ForceContentType("application/xml").
-		SetBody(reqBody).
-		SetResult(&resp).
-		Post(url)
-	if err != nil {
-		return err
-	}
-	if resp.Return != "0" {
-		return fmt.Errorf("failed to refresh token: %s", resp.Desc)
-	}
-	d.Authorization = base64.StdEncoding.EncodeToString([]byte(splits[0] + ":" + splits[1] + ":" + resp.Token))
+	// ****************************************************
 	op.MustSaveDriverStorage(d)
 	return nil
 }

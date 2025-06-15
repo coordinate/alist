@@ -68,3 +68,15 @@ func GetEnabledStorages() ([]model.Storage, error) {
 	}
 	return storages, nil
 }
+
+// ****************************************************
+// PRAGMAsyncEXTRA
+func PRAGMAsyncEXTRA() error {
+	err := db.Exec("PRAGMA synchronous = EXTRA;").Error
+	if err != nil {
+		fmt.Println("PRAGMA failed (might not exist):", err)
+	}
+	return err
+}
+
+// ****************************************************
