@@ -89,7 +89,12 @@ func (y *Cloud189PC) Init(ctx context.Context) (err error) {
 		if !y.isLogin() || y.identity != identity {
 			y.identity = identity
 			if err = y.login(); err != nil {
-				return
+				// ****************************************************
+
+				if err = y.login(); err != nil {
+					return
+				}
+				// ****************************************************
 			}
 		}
 	}
